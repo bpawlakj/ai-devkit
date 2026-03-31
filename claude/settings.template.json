@@ -1,0 +1,85 @@
+{
+  "effortLevel": "high",
+  "extraKnownMarketplaces": {
+    "maister-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "SkillPanel/maister"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "maister@maister-plugins": true
+  },
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.py ]] && command -v ruff >/dev/null 2>&1 && ruff check --fix \"$file\" 2>/dev/null; exit 0",
+            "timeout": 10
+          }
+        ],
+        "description": "Auto-lint Python files with ruff after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.java ]] && command -v google-java-format >/dev/null 2>&1 && google-java-format --replace \"$file\" 2>/dev/null; exit 0",
+            "timeout": 15
+          }
+        ],
+        "description": "Auto-format Java files with google-java-format after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.swift ]] && command -v swiftformat >/dev/null 2>&1 && swiftformat \"$file\" 2>/dev/null; exit 0",
+            "timeout": 15
+          }
+        ],
+        "description": "Auto-format Swift files with SwiftFormat after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.ts || \"$file\" == *.tsx || \"$file\" == *.js || \"$file\" == *.jsx ]] && command -v prettier >/dev/null 2>&1 && prettier --write \"$file\" 2>/dev/null; exit 0",
+            "timeout": 15
+          }
+        ],
+        "description": "Auto-format JS/TS files with Prettier after edits"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); if echo \"$input\" | grep -q '\\-\\-no-verify'; then echo 'BLOCKED: --no-verify flag detected. Do not skip git hooks.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force-with-lease'; then exit 0; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force|git\\s+push\\s+-f\\b'; then echo 'BLOCKED: git push --force detected. Use --force-with-lease or ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+reset\\s+--hard'; then echo 'BLOCKED: git reset --hard detected. This discards uncommitted work. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'rm\\s+-rf\\s+/$|rm\\s+-rf\\s+~|rm\\s+-rf\\s+\\.$|rm\\s+-rf\\s+\\*'; then echo 'BLOCKED: dangerous rm -rf pattern detected. Ask user first.' >&2; exit 2; fi; exit 0",
+            "timeout": 5
+          }
+        ],
+        "description": "Block dangerous commands: --no-verify, push --force, reset --hard, rm -rf"
+      }
+    ]
+  }
+}

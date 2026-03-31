@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "postToolUse": [
+      {
+        "event": "postToolUse",
+        "tool": "file_edit",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.py ]] && command -v ruff >/dev/null 2>&1 && ruff check --fix \"$file\" 2>/dev/null; exit 0",
+        "description": "Auto-lint Python files with ruff after edits",
+        "timeout": 10
+      },
+      {
+        "event": "postToolUse",
+        "tool": "file_edit",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.java ]] && command -v google-java-format >/dev/null 2>&1 && google-java-format --replace \"$file\" 2>/dev/null; exit 0",
+        "description": "Auto-format Java files with google-java-format after edits",
+        "timeout": 15
+      },
+      {
+        "event": "postToolUse",
+        "tool": "file_edit",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.swift ]] && command -v swiftformat >/dev/null 2>&1 && swiftformat \"$file\" 2>/dev/null; exit 0",
+        "description": "Auto-format Swift files with SwiftFormat after edits",
+        "timeout": 15
+      },
+      {
+        "event": "postToolUse",
+        "tool": "file_edit",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.ts || \"$file\" == *.tsx || \"$file\" == *.js || \"$file\" == *.jsx ]] && command -v prettier >/dev/null 2>&1 && prettier --write \"$file\" 2>/dev/null; exit 0",
+        "description": "Auto-format JS/TS files with Prettier after edits",
+        "timeout": 15
+      }
+    ],
+    "preToolUse": [
+      {
+        "event": "preToolUse",
+        "tool": "terminal",
+        "command": "input=$(cat); if echo \"$input\" | grep -q '\\-\\-no-verify'; then echo 'BLOCKED: --no-verify flag detected. Do not skip git hooks.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force|git\\s+push\\s+-f\\b'; then echo 'BLOCKED: git push --force detected. Use --force-with-lease or ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+reset\\s+--hard'; then echo 'BLOCKED: git reset --hard detected. This discards uncommitted work. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'rm\\s+-rf\\s+/|rm\\s+-rf\\s+~|rm\\s+-rf\\s+\\.|rm\\s+-rf\\s+\\*'; then echo 'BLOCKED: dangerous rm -rf pattern detected. Ask user first.' >&2; exit 2; fi; exit 0",
+        "description": "Block dangerous commands: --no-verify, push --force, reset --hard, rm -rf",
+        "timeout": 5
+      }
+    ]
+  }
+}
