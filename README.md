@@ -362,6 +362,33 @@ brew install kubectl                 # Kubernetes CLI (for /k8s)
 brew install helm                    # Helm (for /k8s helm commands)
 ```
 
+## Tests
+
+75 unit tests using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
+
+```bash
+# Install bats
+brew install bats-core
+
+# Run all tests
+bats tests/
+
+# Run a specific test file
+bats tests/cloud-discover.bats
+
+# Verbose output
+bats tests/ --verbose-run
+```
+
+| Suite | Tests | Coverage |
+|---|---|---|
+| `aws-dashboard.bats` | 14 | Dashboard rendering, access indicators, MFA status, operations menu |
+| `awscmd.bats` | 10 | Profile name validation (path traversal, injection), argument handling |
+| `cloud-discover.bats` | 21 | Profile discovery, env/project/access auto-detection, account ID masking, JSON schema |
+| `k8s-dashboard.bats` | 12 | K8s dashboard, cluster info, namespace display, profile filtering |
+| `prompt-hook.bats` | 8 | Command routing (`/aws`, `/k8s`, `/cloud-setup`), not-configured fallback |
+| `setup.bats` | 10 | Flag parsing, JSON merge, file integrity, settings validation |
+
 ## Uninstall
 
 ```bash
@@ -400,6 +427,15 @@ ai-devkit/
 │       ├── cloud-discover.sh        #   AWS profile discovery (JSON output)
 │       ├── cloud-setup.sh           #   Interactive setup wizard (standalone)
 │       └── prompt-hook.sh           #   UserPromptSubmit hook (dashboard injection)
+│
+├── tests/                           # BATS unit tests (75 tests)
+│   ├── test_helper.bash             #   Shared setup: temp dirs, mock configs
+│   ├── aws-dashboard.bats           #   Dashboard rendering, MFA status
+│   ├── awscmd.bats                  #   Profile validation, security
+│   ├── cloud-discover.bats          #   Profile discovery, auto-detection
+│   ├── k8s-dashboard.bats           #   K8s dashboard, namespaces
+│   ├── prompt-hook.bats             #   Command routing
+│   └── setup.bats                   #   Setup integrity, JSON merge
 │
 └── copilot/                         # Copilot CLI specific
     ├── install-to-repo.sh           # Install instructions into a repo
