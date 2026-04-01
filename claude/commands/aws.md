@@ -28,6 +28,52 @@ If any command fails with AccessDenied, ask the user for MFA token and retry wit
 echo '<token>' | AWS_MFA_TOKEN=$(cat) <aws_wrapper> <profile> aws <subcommand...>
 ```
 
-Safety: NEVER modify/delete prd resources without confirmation. Always confirm destructive ops.
+## Safety Guard (CRITICAL — READ-ONLY BY DEFAULT)
+
+You are a READ-ONLY tool. You may ONLY execute commands that read/list/describe/get resources. You MUST NEVER execute any command that creates, modifies, updates, or deletes resources unless the user provides EXPLICIT confirmation.
+
+### BLOCKED commands — NEVER execute without confirmation:
+
+**Always blocked (all environments):**
+- `aws s3 rm`, `aws s3 mv`, `aws s3 cp` (upload direction)
+- `aws ec2 terminate-instances`, `aws ec2 stop-instances`, `aws ec2 start-instances`
+- `aws ec2 modify-*`, `aws ec2 create-*`, `aws ec2 delete-*`
+- `aws ecs update-service`, `aws ecs stop-task`, `aws ecs delete-*`
+- `aws lambda update-function-*`, `aws lambda delete-*`, `aws lambda invoke`
+- `aws rds delete-*`, `aws rds modify-*`, `aws rds stop-*`, `aws rds reboot-*`
+- `aws dynamodb delete-*`, `aws dynamodb update-*`, `aws dynamodb put-item`
+- `aws ssm put-parameter`, `aws ssm delete-*`
+- `aws secretsmanager create-*`, `aws secretsmanager update-*`, `aws secretsmanager delete-*`
+- `aws iam *` (all IAM write operations)
+- `aws cloudformation create-*`, `aws cloudformation update-*`, `aws cloudformation delete-*`
+- Any command with `--force`, `--yes`, `--no-confirm`
+
+**Absolutely forbidden on prd (even with confirmation):**
+- `aws rds delete-db-instance`
+- `aws dynamodb delete-table`
+- `aws ec2 terminate-instances`
+- `aws cloudformation delete-stack`
+- `aws s3 rb` (remove bucket)
+
+### Confirmation flow for write operations:
+
+If the user explicitly requests a write operation (e.g., "update the ECS service image"), you MUST:
+
+1. Show the EXACT command you would run
+2. Show which environment and profile it targets
+3. Show what will change (before → after if possible)
+4. Ask for explicit confirmation with this format:
+
+```
+⚠️  Write operation on <ENV>
+  Profile:  <profile-name>
+  Command:  <full aws command>
+  Effect:   <what this will change>
+
+  Type "yes" to confirm, or anything else to cancel.
+```
+
+5. Only execute if the user responds with exactly "yes"
+6. On ReadOnly profiles — refuse immediately, do not even show the confirmation
 
 $ARGUMENTS

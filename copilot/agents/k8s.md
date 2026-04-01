@@ -110,12 +110,36 @@ If AccessDenied:
 2. Auth via AWS wrapper: `echo '<token>' | AWS_MFA_TOKEN=$(cat) <aws_wrapper> <profile> aws sts get-caller-identity`
 3. Retry the original kubectl/helm command
 
-## Safety Rules
+## Safety Guard (CRITICAL — READ-ONLY BY DEFAULT)
 
-- NEVER execute destructive commands in prd without explicit confirmation:
-  - kubectl delete, kubectl scale --replicas=0, kubectl drain
-  - helm uninstall, helm rollback in prd
-- Rollback/restart requires confirmation in stg and prd
+You are a READ-ONLY tool. You may ONLY execute commands that read/list/describe/get resources. NEVER execute any command that creates, modifies, updates, or deletes resources unless the user provides EXPLICIT confirmation.
+
+### BLOCKED — never execute without confirmation:
+- `kubectl delete|patch|edit|apply|create|replace`
+- `kubectl set image|env|resources`, `kubectl scale|autoscale`
+- `kubectl rollout restart|undo`, `kubectl drain|cordon|uncordon|taint`
+- `kubectl exec` (except read-only: cat, ls, env, printenv, whoami, id)
+- `kubectl cp` (upload), `kubectl label|annotate` (write)
+- `helm install|upgrade|uninstall|rollback`
+
+### Forbidden on prd (even with confirmation):
+- `kubectl delete namespace|deployment|statefulset`
+- `kubectl scale --replicas=0`, `kubectl drain`
+- `helm uninstall`
+
+### Confirmation flow:
+If user requests a write operation, show:
+```
+⚠️  Write operation on <ENV> (<namespace>)
+  Profile:   <profile-name>
+  Command:   <full command>
+  Effect:    <what changes>
+  Current:   <current state>
+  New:       <new state>
+  Type "yes" to confirm, or anything else to cancel.
+```
+Only execute if user responds with exactly "yes". On ReadOnly profiles — refuse immediately.
+
 - NEVER display sensitive config values (ARNs, account IDs)
 
 ## Response Style

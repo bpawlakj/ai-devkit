@@ -105,11 +105,36 @@ If AccessDenied or MFA prompt:
 2. Re-run: `echo '<token>' | AWS_MFA_TOKEN=$(cat) <aws_wrapper> <profile> aws <subcommand...>`
 3. Subsequent commands reuse cached credentials (~58 min TTL)
 
-## Safety Rules
+## Safety Guard (CRITICAL — READ-ONLY BY DEFAULT)
 
-- NEVER modify/delete prd resources without explicit confirmation
-- ReadOnly profiles reject writes — inform user proactively
-- Always confirm destructive operations (delete, terminate, stop)
+You are a READ-ONLY tool. You may ONLY execute commands that read/list/describe/get resources. NEVER execute any command that creates, modifies, updates, or deletes resources unless the user provides EXPLICIT confirmation.
+
+### BLOCKED — never execute without confirmation:
+- `aws ec2 terminate|stop|start|modify|create|delete-*`
+- `aws ecs update-service|stop-task|delete-*`
+- `aws lambda update-function|delete|invoke`
+- `aws rds delete|modify|stop|reboot-*`
+- `aws dynamodb delete|update|put-item`
+- `aws s3 rm|mv`, `aws s3 cp` (upload)
+- `aws ssm put-parameter|delete-*`
+- `aws secretsmanager create|update|delete-*`
+- `aws iam *` (all write), `aws cloudformation create|update|delete-*`
+
+### Forbidden on prd (even with confirmation):
+- `aws rds delete-db-instance`, `aws dynamodb delete-table`
+- `aws ec2 terminate-instances`, `aws cloudformation delete-stack`, `aws s3 rb`
+
+### Confirmation flow:
+If user requests a write operation, show:
+```
+⚠️  Write operation on <ENV>
+  Profile:  <profile-name>
+  Command:  <full command>
+  Effect:   <what changes>
+  Type "yes" to confirm, or anything else to cancel.
+```
+Only execute if user responds with exactly "yes". On ReadOnly profiles — refuse immediately.
+
 - NEVER display the full MFA serial ARN
 
 ## Response Style

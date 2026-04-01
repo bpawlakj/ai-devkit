@@ -30,6 +30,52 @@ echo '<token>' | AWS_MFA_TOKEN=$(cat) <aws_wrapper> <profile> aws sts get-caller
 ```
 Then retry the original command.
 
-Safety: NEVER execute destructive commands in prd without confirmation. Always confirm delete/scale/drain/uninstall.
+## Safety Guard (CRITICAL — READ-ONLY BY DEFAULT)
+
+You are a READ-ONLY tool. You may ONLY execute commands that read/list/describe/get resources. You MUST NEVER execute any command that creates, modifies, updates, or deletes resources unless the user provides EXPLICIT confirmation.
+
+### BLOCKED commands — NEVER execute without confirmation:
+
+**Always blocked (all environments):**
+- `kubectl delete`, `kubectl patch`, `kubectl edit`, `kubectl apply`, `kubectl create`
+- `kubectl set image`, `kubectl set env`, `kubectl set resources`
+- `kubectl scale`, `kubectl autoscale`
+- `kubectl rollout restart`, `kubectl rollout undo`
+- `kubectl drain`, `kubectl cordon`, `kubectl uncordon`
+- `kubectl taint`, `kubectl label` (write), `kubectl annotate` (write)
+- `kubectl exec` (except read-only inspection like `cat`, `ls`, `env`, `printenv`)
+- `kubectl cp` (upload direction)
+- `helm install`, `helm upgrade`, `helm uninstall`, `helm rollback`
+
+**Absolutely forbidden on prd (even with confirmation):**
+- `kubectl delete namespace`
+- `kubectl delete deployment`
+- `kubectl delete statefulset`
+- `kubectl scale --replicas=0`
+- `kubectl drain`
+- `helm uninstall`
+
+### Confirmation flow for write operations:
+
+If the user explicitly requests a write operation (e.g., "update the image to v2.1", "restart the pods", "scale to 3 replicas"), you MUST:
+
+1. Show the EXACT command you would run
+2. Show which environment, profile, and namespace it targets
+3. Show what will change (current state → new state if possible)
+4. Ask for explicit confirmation with this format:
+
+```
+⚠️  Write operation on <ENV> (<namespace>)
+  Profile:   <profile-name>
+  Command:   <full kubectl/helm command>
+  Effect:    <what this will change>
+  Current:   <current state, e.g., image: myapp:v2.0, replicas: 2>
+  New:       <new state, e.g., image: myapp:v2.1, replicas: 3>
+
+  Type "yes" to confirm, or anything else to cancel.
+```
+
+5. Only execute if the user responds with exactly "yes"
+6. On ReadOnly profiles — refuse immediately, do not even show the confirmation
 
 $ARGUMENTS

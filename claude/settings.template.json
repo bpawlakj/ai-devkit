@@ -86,6 +86,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ~/.claude/scripts/cloud-guard.sh",
+            "timeout": 5
+          }
+        ],
+        "description": "Block destructive AWS/kubectl/helm commands — read-only by default, requires explicit confirmation"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "input=$(cat); if echo \"$input\" | grep -q '\\-\\-no-verify'; then echo 'BLOCKED: --no-verify flag detected. Do not skip git hooks.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force' && ! echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force-with-lease(\\s|$)'; then echo 'BLOCKED: git push --force detected. Use --force-with-lease or ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+reset\\s+--hard'; then echo 'BLOCKED: git reset --hard detected. This discards uncommitted work. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'rm\\s+-rf\\s+/|rm\\s+-rf\\s+~|rm\\s+-rf\\s+\\.|rm\\s+-rf\\s+\\*'; then echo 'BLOCKED: dangerous rm -rf pattern detected. Ask user first.' >&2; exit 2; fi; exit 0",
             "timeout": 5
           }
