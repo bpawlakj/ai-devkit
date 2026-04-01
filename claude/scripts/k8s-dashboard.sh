@@ -67,16 +67,14 @@ jq -r --argjson k8s_profiles "$(jq '.k8s.profiles' "$CLOUD_CONFIG")" '
         .aws.profiles[]
         | select(.project == $proj)
         | select(.name as $n | $k8s_profiles | index($n))
-        | "    \(.name) · \(.environment) · \(.access_level)"
-    ' "$CLOUD_CONFIG" | while read -r line; do
-        if echo "$line" | grep -qE 'PowerUser|Admin'; then
-            echo "$line" | sed 's/· \(PowerUser\|Admin\)/· ✔ \1/'
-        elif echo "$line" | grep -q 'ReadOnly'; then
-            echo "$line" | sed 's/· ReadOnly/· △ ReadOnly/'
-        else
-            echo "$line" | sed 's/· \([^·]*\)$/· ◯ \1/'
-        fi
-    done
+        | if .access_level == "PowerUser" or .access_level == "Admin" then
+            "    \(.name) · \(.environment) · ✔ \(.access_level)"
+          elif .access_level == "ReadOnly" then
+            "    \(.name) · \(.environment) · △ \(.access_level)"
+          else
+            "    \(.name) · \(.environment) · ◯ \(.access_level)"
+          end
+    ' "$CLOUD_CONFIG"
     echo ""
 done
 

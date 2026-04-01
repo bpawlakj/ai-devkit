@@ -43,17 +43,14 @@ jq -r '.aws.profiles | group_by(.project)[] | .[0].project' "$CLOUD_CONFIG" | wh
     jq -r --arg proj "$project" '
         .aws.profiles[]
         | select(.project == $proj)
-        | "    \(.name) · \(.environment) · \(.access_level)"
-    ' "$CLOUD_CONFIG" | while read -r line; do
-        # Add access level indicator
-        if echo "$line" | grep -qE 'PowerUser|Admin'; then
-            echo "$line" | sed 's/· \(PowerUser\|Admin\)/· ✔ \1/'
-        elif echo "$line" | grep -q 'ReadOnly'; then
-            echo "$line" | sed 's/· ReadOnly/· △ ReadOnly/'
-        else
-            echo "$line" | sed 's/· \([^·]*\)$/· ◯ \1/'
-        fi
-    done
+        | if .access_level == "PowerUser" or .access_level == "Admin" then
+            "    \(.name) · \(.environment) · ✔ \(.access_level)"
+          elif .access_level == "ReadOnly" then
+            "    \(.name) · \(.environment) · △ \(.access_level)"
+          else
+            "    \(.name) · \(.environment) · ◯ \(.access_level)"
+          end
+    ' "$CLOUD_CONFIG"
     echo ""
 done
 
