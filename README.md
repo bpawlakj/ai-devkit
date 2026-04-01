@@ -166,6 +166,71 @@ When MFA is configured and credentials are expired:
 
 Subsequent commands reuse cached credentials. If a command fails with `AccessDenied` mid-session, Claude will ask for a new MFA token automatically.
 
+#### Safety Guard — Read-Only by Default
+
+All cloud commands operate in **read-only mode**. Three layers of protection prevent accidental modifications:
+
+1. **PreToolUse hook** (`cloud-guard.sh`) — deterministic bash script that intercepts every shell command and blocks destructive operations before they execute
+2. **Command prompts** — explicit read-only instructions with blocked command lists
+3. **Copilot agents** — same safety rules for `@aws` and `@k8s`
+
+**Read operations (always allowed):**
+```
+/aws                          # Dashboard, menu
+> 1                           # whoami — ✅ allowed
+> 5                           # ec2 ls — ✅ allowed
+> 17                          # logs groups — ✅ allowed
+kubectl get pods -A           # ✅ allowed
+kubectl describe pod my-pod   # ✅ allowed
+kubectl logs my-pod           # ✅ allowed
+helm list -A                  # ✅ allowed
+```
+
+**Write operations (blocked — requires explicit confirmation):**
+```
+> update ECS service image
+
+⚠️  Write operation on dev
+  Profile:  myapp-dev
+  Command:  awscmd.sh myapp-dev aws ecs update-service --cluster my-cluster --service my-svc --force-new-deployment
+  Effect:   Forces new deployment of my-svc with latest image
+
+  Type "yes" to confirm, or anything else to cancel.
+
+> yes
+  ✔ Service updated.
+```
+
+```
+> set image to v2.1
+
+⚠️  Write operation on dev (app-ns)
+  Profile:   myapp-dev
+  Command:   kubecmd.sh myapp-dev kubectl set image deployment/my-app my-app=myimage:v2.1
+  Current:   image: myimage:v2.0
+  New:       image: myimage:v2.1
+
+  Type "yes" to confirm, or anything else to cancel.
+
+> yes
+  ✔ Image updated.
+```
+
+**Blocked commands include:**
+
+| AWS | Kubernetes |
+|---|---|
+| `ec2 terminate/stop/start/modify/delete` | `kubectl delete/apply/create/patch/edit` |
+| `ecs update-service/stop-task` | `kubectl set image/env/resources` |
+| `lambda update/delete/invoke` | `kubectl scale/rollout restart/drain` |
+| `rds delete/modify/stop` | `kubectl exec` (except read-only: cat, ls, env) |
+| `dynamodb delete/update/put-item` | `helm install/upgrade/uninstall/rollback` |
+| `s3 rm/mv/cp` (upload) | |
+| `ssm put-parameter`, `secretsmanager create/update/delete` | |
+| All `iam` write operations, `cloudformation create/update/delete` | |
+
+**Forbidden on production (even with confirmation):** `rds delete-db-instance`, `dynamodb delete-table`, `ec2 terminate-instances`, `cloudformation delete-stack`, `s3 rb`, `kubectl delete namespace/deployment/statefulset`, `kubectl scale --replicas=0`, `helm uninstall`.
+
 #### `/ship` — Release Flow
 
 Automates the full release cycle:
