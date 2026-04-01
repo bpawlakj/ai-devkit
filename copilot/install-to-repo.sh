@@ -88,8 +88,14 @@ if [ -z "$LANGUAGES" ]; then
 else
     # Install selected
     IFS=',' read -ra LANGS <<< "$LANGUAGES"
+    VALID_LANGS="java spring spring-boot python typescript react angular node swift-ios security"
     for lang in "${LANGS[@]}"; do
         lang=$(echo "$lang" | tr -d ' ')
+        # Validate against allowlist to prevent path traversal
+        if ! echo "$VALID_LANGS" | grep -qw "$lang"; then
+            warn "Unknown language: $lang (valid: $VALID_LANGS)"
+            continue
+        fi
         case "$lang" in
             java)
                 install_instruction "java"

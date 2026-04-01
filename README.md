@@ -18,6 +18,28 @@ cd ~/ai-devkit
 
 Restart your tool after running.
 
+### Updating
+
+```bash
+cd ~/ai-devkit
+./update.sh
+```
+
+This will:
+1. Check if a newer version is available
+2. Show what changed (changelog diff)
+3. Pull the latest changes
+4. Re-run setup automatically
+
+Options:
+```bash
+./update.sh --check     # Only check, don't install
+./update.sh --claude    # Update Claude Code config only
+./update.sh --copilot   # Update Copilot CLI config only
+```
+
+> `setup.sh` also checks for updates automatically and shows a notification if a newer version exists.
+
 ---
 
 ## What's Inside
@@ -40,9 +62,109 @@ Auto-activate based on file type. Enforce language/framework best practices with
 
 ---
 
-### Commands — Slash Commands (4 files)
+### Commands — Slash Commands (7 files)
 
-Type these directly in Claude Code. For Copilot CLI, use the prompt templates in `copilot/prompts/`.
+Type these directly in Claude Code. For Copilot CLI, cloud commands are available as agents (`@aws`, `@k8s`).
+
+#### `/cloud-setup` — Cloud Access Configuration
+
+Interactive setup wizard for AWS and Kubernetes access. Uses a `UserPromptSubmit` hook to auto-discover your AWS profiles before the conversation starts.
+
+**How it works:**
+1. Hook runs `cloud-discover.sh` → reads `~/.aws/config` → discovers profiles with role ARNs, auto-detects project/env/access
+2. Claude walks you through annotation one question at a time, with smart defaults
+3. Writes `~/.claude/cloud-config.json` (chmod 600)
+
+**Steps:**
+1. **AWS config path** — locates your `~/.aws` directory
+2. **Profile annotation** — confirm or override auto-detected project, environment, access level per profile
+3. **Default project** — which project resolves when you just say "dev"
+4. **MFA setup** — configure your MFA device ARN
+5. **Region** — default AWS region
+6. **K8s setup** (optional) — EKS cluster name, region, management role, namespaces
+7. **Script paths** — wrapper scripts for auth (installed by `setup.sh`)
+
+**Claude Code:**
+```
+/cloud-setup
+```
+
+**Copilot CLI:** Run the interactive script directly:
+```bash
+bash ~/.claude/scripts/cloud-setup.sh
+```
+
+#### `/aws` — AWS Environment Dashboard
+
+Deterministic dashboard + interactive command executor. A `UserPromptSubmit` hook runs `aws-dashboard.sh` before Claude processes the command — the dashboard always renders the same way for the same config.
+
+**Features:**
+- **Dashboard** — shows all environments grouped by project with access indicators (✔ PowerUser, △ ReadOnly, ◯ Tunnel)
+- **MFA status** — shows `✔ active (42m remaining)` or `✖ expired` with automatic prompt for 6-digit token
+- **Operations menu** — 18 numbered operations (whoami, s3, ec2, ecs, lambda, ecr, rds, dynamo, ssm, secrets, vpc, sg, logs)
+- **Environment connect** — type an env name to assume role and verify identity
+- **Safety** — confirms destructive ops, blocks writes on ReadOnly profiles
+
+**Claude Code:**
+```
+/aws                    # Show dashboard + menu
+/aws dev                # Connect to default project's dev
+/aws ETSL stg           # Connect to ETSL staging
+/aws show S3 buckets    # Execute directly
+```
+
+After `/aws`, pick a number from the menu or type a command:
+```
+> 5                     # List EC2 instances (asks which env first)
+> 3                     # List S3 buckets
+> ETSL dev              # Switch to ETSL dev environment
+> show lambda functions # Natural language
+```
+
+**Copilot CLI** (agent, no hook — dashboard rendered by Claude, less deterministic):
+```
+@aws                    # Show dashboard
+@aws dev                # Connect to dev
+@aws show pods on stg   # Execute directly
+```
+
+#### `/k8s` — Kubernetes Environment Dashboard
+
+Same architecture as `/aws` — deterministic hook-driven dashboard with interactive commands.
+
+**Features:**
+- **Dashboard** — K8s-enabled profiles, cluster name, region, known namespaces
+- **MFA status** — same as `/aws`, prompts for token when expired
+- **Operations menu** — 18 operations (pods, deployments, services, ingress, logs, describe, events, top, configmaps, secrets, hpa, nodes, namespaces, helm)
+- **Namespace awareness** — suggests `-n <namespace>` from config when not specified
+
+**Claude Code:**
+```
+/k8s                    # Show dashboard + menu
+/k8s dev                # Connect to default project's dev cluster
+/k8s MAX stg            # Connect to MAX staging
+/k8s show pods on dev   # Execute directly
+```
+
+**Copilot CLI:**
+```
+@k8s                    # Show dashboard
+@k8s dev                # Connect to dev
+```
+
+#### MFA Flow (both `/aws` and `/k8s`)
+
+When MFA is configured and credentials are expired:
+
+```
+  MFA: ✖ expired
+
+  MFA session expired. Enter your 6-digit MFA token:
+> 123456
+  ✔ Authenticated. Session valid for ~58 minutes.
+```
+
+Subsequent commands reuse cached credentials. If a command fails with `AccessDenied` mid-session, Claude will ask for a new MFA token automatically.
 
 #### `/ship` — Release Flow
 
@@ -81,9 +203,17 @@ Full threat modeling for a specified component:
 
 ---
 
-### Agents — Specialized AI Roles (3 files)
+### Agents — Specialized AI Roles
 
 Focused agents that can be invoked for specific tasks.
+
+| Agent | Claude Code | Copilot CLI |
+|---|---|---|
+| security-reviewer | Auto-available as subagent | `@security-reviewer` |
+| build-resolver | Auto-available as subagent | `@build-resolver` |
+| performance-analyzer | Auto-available as subagent | `@performance-analyzer` |
+| aws | Via `/aws` slash command (hook-driven) | `@aws` |
+| k8s | Via `/k8s` slash command (hook-driven) | `@k8s` |
 
 #### `security-reviewer`
 
@@ -115,21 +245,38 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Hooks — Auto-Triggers (5 hooks)
+### Hooks — Auto-Triggers (6 hooks)
 
-Run automatically after file edits or before dangerous commands.
+Run automatically on specific events. Claude Code only.
 
-| Hook | Trigger | Action |
+| Hook | Event | Action |
 |---|---|---|
-| **ruff** | Edit `*.py` | Auto-lint with `ruff check --fix` |
-| **google-java-format** | Edit `*.java` | Auto-format |
-| **swiftformat** | Edit `*.swift` | Auto-format |
-| **prettier** | Edit `*.ts`/`*.tsx`/`*.js`/`*.jsx` | Auto-format |
-| **safety guard** | Any shell command | Blocks `--no-verify`, `push --force` (allows `--force-with-lease`), `reset --hard`, dangerous `rm -rf` |
+| **cloud dashboard** | `UserPromptSubmit` | Injects AWS/K8s dashboard output when `/aws`, `/k8s`, or `/cloud-setup` is invoked |
+| **ruff** | `PostToolUse` (Edit `*.py`) | Auto-lint with `ruff check --fix` |
+| **google-java-format** | `PostToolUse` (Edit `*.java`) | Auto-format |
+| **swiftformat** | `PostToolUse` (Edit `*.swift`) | Auto-format |
+| **prettier** | `PostToolUse` (Edit `*.ts`/`*.tsx`/`*.js`/`*.jsx`) | Auto-format |
+| **safety guard** | `PreToolUse` (Bash) | Blocks `--no-verify`, `push --force` (allows `--force-with-lease`), `reset --hard`, dangerous `rm -rf` |
+
+The cloud dashboard hook is the key mechanism that makes `/aws` and `/k8s` deterministic — `prompt-hook.sh` detects the slash command and runs the corresponding dashboard script, injecting its output as context before Claude processes the prompt.
 
 All formatter hooks use `command -v` guards — silently skip if the tool isn't installed.
 
 ---
+
+### Scripts — Cloud Wrappers & Hooks (7 files)
+
+Installed to `~/.claude/scripts/` by `setup.sh`. These are deterministic bash scripts — not prompts.
+
+| Script | Purpose |
+|---|---|
+| `awscmd.sh` | AWS CLI wrapper with MFA + role assumption + credential caching (~58 min TTL) |
+| `kubecmd.sh` | kubectl/helm wrapper with EKS auth via AWS role assumption |
+| `aws-dashboard.sh` | Reads `cloud-config.json`, renders environment list + operations menu |
+| `k8s-dashboard.sh` | Same as above for Kubernetes environments |
+| `cloud-discover.sh` | Discovers AWS profiles from `~/.aws/config`, outputs JSON for `/cloud-setup` wizard |
+| `cloud-setup.sh` | Interactive terminal wizard for creating `cloud-config.json` (standalone, for Copilot CLI) |
+| `prompt-hook.sh` | `UserPromptSubmit` hook — detects `/aws`, `/k8s`, `/cloud-setup` and injects dashboard output |
 
 ### Plugin — Maister (Claude Code only)
 
@@ -150,9 +297,11 @@ Auto-configured in settings.json. Provides 30+ specialized workflows:
 | CLAUDE.md | `~/.claude/` (global) | `~/.claude/` (global, reads same file) |
 | Rules / Instructions | `~/.claude/rules/` (global, auto-activate) | `.github/instructions/` (per-repo) |
 | Commands | `~/.claude/commands/` (global slash commands) | Not supported (use prompt templates) |
+| Cloud commands | `/aws`, `/k8s` (hook-driven, deterministic) | `@aws`, `@k8s` (agent-based, best-effort) |
 | Agents | `~/.claude/agents/` (global) | `~/.copilot/agents/` (global) |
-| Hooks | `~/.claude/settings.json` (global) | `.github/hooks/` (per-repo) |
+| Hooks | `~/.claude/settings.json` (global, incl. `UserPromptSubmit`) | `.github/hooks/` (per-repo, tool-level only) |
 | MCP | `~/.claude/settings.json` (global) | `~/.copilot/mcp-config.json` (global) |
+| Scripts | `~/.claude/scripts/` (cloud wrappers, dashboards) | Same scripts, called by agents |
 
 ### Installing Instructions Into a Repo
 
@@ -168,9 +317,28 @@ Auto-configured in settings.json. Provides 30+ specialized workflows:
 
 This copies `.instructions.md` files to `.github/instructions/` and hooks to `.github/hooks/`. Commit them to share with your team, or add to `.gitignore` for personal use.
 
+### Cloud Commands in Copilot CLI
+
+Copilot CLI doesn't support `UserPromptSubmit` hooks, so cloud commands use agents instead. They work the same way but the dashboard is rendered by the AI (less deterministic):
+
+```
+@aws                           # Show AWS dashboard
+@aws dev                       # Connect to dev
+@aws show S3 buckets on stg    # Direct command
+
+@k8s                           # Show K8s dashboard
+@k8s MAX dev                   # Connect to MAX dev cluster
+@k8s show pods in app-ns       # Direct command
+```
+
+First-time setup — run the wizard directly in your terminal:
+```bash
+bash ~/.claude/scripts/cloud-setup.sh
+```
+
 ### Using Prompts (Slash Command Replacement)
 
-Copilot CLI doesn't support custom slash commands yet. Copy-paste from `copilot/prompts/`:
+Copilot CLI doesn't support custom slash commands. Copy-paste from `copilot/prompts/`:
 
 ```bash
 cat copilot/prompts/ship.md    # Then paste the prompt into Copilot CLI
@@ -189,6 +357,9 @@ brew install swiftformat             # Swift formatting
 npm install -g prettier              # JS/TS formatting
 brew install gh                      # GitHub CLI (for /ship)
 apt install jq                       # JSON merge in setup script
+brew install awscli                  # AWS CLI (for /aws)
+brew install kubectl                 # Kubernetes CLI (for /k8s)
+brew install helm                    # Helm (for /k8s helm commands)
 ```
 
 ## Uninstall
@@ -208,20 +379,37 @@ Removes rules, commands, and agents. Does NOT touch CLAUDE.md, settings.json, or
 ```
 ai-devkit/
 ├── setup.sh                         # Unified setup (--claude | --copilot | --all)
+├── update.sh                        # Check for updates and re-install
+├── release.sh                       # Cut a new release (maintainer only)
 ├── uninstall.sh                     # Unified uninstall (same flags)
+├── VERSION                          # Current semantic version
+├── CHANGELOG.md                     # Release history
 ├── CLAUDE.md                        # Shared global instructions (both tools)
 ├── LICENSE                          # MIT
 │
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
 │   ├── rules/                       # 9 coding standard files
-│   ├── commands/                    # 4 slash commands
-│   └── agents/                      # 3 specialized agents
+│   ├── commands/                    # 7 slash commands
+│   ├── agents/                      # 3 specialized agents
+│   └── scripts/                     # 7 scripts (wrappers, dashboards, hooks)
+│       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
+│       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
+│       ├── aws-dashboard.sh         #   AWS environment dashboard
+│       ├── k8s-dashboard.sh         #   K8s environment dashboard
+│       ├── cloud-discover.sh        #   AWS profile discovery (JSON output)
+│       ├── cloud-setup.sh           #   Interactive setup wizard (standalone)
+│       └── prompt-hook.sh           #   UserPromptSubmit hook (dashboard injection)
 │
 └── copilot/                         # Copilot CLI specific
     ├── install-to-repo.sh           # Install instructions into a repo
     ├── mcp-config.json              # MCP server config
-    ├── agents/                      # 3 agents (Copilot format)
+    ├── agents/                      # 5 agents (Copilot format)
+    │   ├── aws.md                   #   AWS dashboard + commands
+    │   ├── k8s.md                   #   K8s dashboard + commands
+    │   ├── security-reviewer.md     #   Security analysis
+    │   ├── build-resolver.md        #   Build error resolution
+    │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 9 instruction files (per-repo)
     └── prompts/                     # 4 prompt templates (copy-paste)

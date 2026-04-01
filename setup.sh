@@ -13,6 +13,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 COPILOT_DIR="${COPILOT_HOME:-${XDG_CONFIG_HOME:-$HOME/.copilot}}"
 BACKUP_SUFFIX="setup-$(date +%Y%m%d-%H%M%S)"
+VERSION_FILE="$SCRIPT_DIR/VERSION"
+LOCAL_VERSION="$(cat "$VERSION_FILE" 2>/dev/null | tr -d '[:space:]' || echo "unknown")"
 
 # Colors
 RED='\033[0;31m'
@@ -57,9 +59,24 @@ esac
 
 echo ""
 echo "========================================"
-echo "  AI Coding Tools Setup"
+echo "  AI Coding Tools Setup  v${LOCAL_VERSION}"
 echo "========================================"
 echo ""
+
+# ============================================================================
+# Check for newer version (non-blocking)
+# ============================================================================
+
+if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
+    if git -C "$SCRIPT_DIR" fetch origin main --quiet 2>/dev/null; then
+        REMOTE_VERSION="$(git -C "$SCRIPT_DIR" show origin/main:VERSION 2>/dev/null | tr -d '[:space:]' || echo "")"
+        if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
+            echo -e "${YELLOW}  New version available: ${LOCAL_VERSION} → ${REMOTE_VERSION}${NC}"
+            echo -e "${YELLOW}  Run ${BOLD}./update.sh${NC}${YELLOW} to upgrade.${NC}"
+            echo ""
+        fi
+    fi
+fi
 
 # ============================================================================
 # Shared: CLAUDE.md (both tools read it)
@@ -139,6 +156,20 @@ if $DO_CLAUDE; then
         ok "settings.json installed"
     fi
 
+    header "Claude Code: Scripts (cloud wrappers)"
+    mkdir -p "$CLAUDE_DIR/scripts"
+    for f in "$SCRIPT_DIR"/claude/scripts/*.sh; do
+        [ -f "$f" ] || continue
+        cp "$f" "$CLAUDE_DIR/scripts/"
+        chmod +x "$CLAUDE_DIR/scripts/$(basename "$f")"
+        ok "$(basename "$f")"
+    done
+    if [ ! -f "$CLAUDE_DIR/cloud-config.json" ]; then
+        info "  Run /cloud-setup in Claude Code to configure AWS/K8s access"
+    else
+        ok "cloud-config.json already exists"
+    fi
+
     header "Claude Code: Maister Plugin"
     if [ -d "$CLAUDE_DIR/plugins/marketplaces/maister-plugins" ]; then
         ok "Maister marketplace already registered"
@@ -212,6 +243,9 @@ check_tool "swiftformat"         "brew install swiftformat"
 check_tool "prettier"            "npm install -g prettier"
 check_tool "jq"                  "apt install jq / brew install jq"
 check_tool "gh"                  "brew install gh (for /ship command)"
+check_tool "aws"                 "brew install awscli (for /aws command)"
+check_tool "kubectl"             "brew install kubectl (for /k8s command)"
+check_tool "helm"                "brew install helm (for /k8s helm commands)"
 
 # ============================================================================
 # Summary
@@ -219,7 +253,7 @@ check_tool "gh"                  "brew install gh (for /ship command)"
 
 echo ""
 echo "========================================"
-echo "  Setup Complete"
+echo "  Setup Complete  v${LOCAL_VERSION}"
 echo "========================================"
 echo ""
 
@@ -228,6 +262,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
+    echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    5 (ruff, java-format, swiftformat, prettier, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
     echo ""

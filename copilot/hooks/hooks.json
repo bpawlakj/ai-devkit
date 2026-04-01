@@ -4,28 +4,28 @@
       {
         "event": "postToolUse",
         "tool": "file_edit",
-        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.py ]] && command -v ruff >/dev/null 2>&1 && ruff check --fix \"$file\" 2>/dev/null; exit 0",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.py ]] && command -v ruff >/dev/null 2>&1 && ruff check --fix \"$file\" 2>/dev/null; exit 0",
         "description": "Auto-lint Python files with ruff after edits",
         "timeout": 10
       },
       {
         "event": "postToolUse",
         "tool": "file_edit",
-        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.java ]] && command -v google-java-format >/dev/null 2>&1 && google-java-format --replace \"$file\" 2>/dev/null; exit 0",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.java ]] && command -v google-java-format >/dev/null 2>&1 && google-java-format --replace \"$file\" 2>/dev/null; exit 0",
         "description": "Auto-format Java files with google-java-format after edits",
         "timeout": 15
       },
       {
         "event": "postToolUse",
         "tool": "file_edit",
-        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.swift ]] && command -v swiftformat >/dev/null 2>&1 && swiftformat \"$file\" 2>/dev/null; exit 0",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.swift ]] && command -v swiftformat >/dev/null 2>&1 && swiftformat \"$file\" 2>/dev/null; exit 0",
         "description": "Auto-format Swift files with SwiftFormat after edits",
         "timeout": 15
       },
       {
         "event": "postToolUse",
         "tool": "file_edit",
-        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == *.ts || \"$file\" == *.tsx || \"$file\" == *.js || \"$file\" == *.jsx ]] && command -v prettier >/dev/null 2>&1 && prettier --write \"$file\" 2>/dev/null; exit 0",
+        "command": "file=$(echo \"$COPILOT_TOOL_INPUT\" | grep -o '\"path\":\"[^\"]*\"' | head -1 | sed 's/\"path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.ts || \"$file\" == *.tsx || \"$file\" == *.js || \"$file\" == *.jsx ]] && command -v prettier >/dev/null 2>&1 && prettier --write \"$file\" 2>/dev/null; exit 0",
         "description": "Auto-format JS/TS files with Prettier after edits",
         "timeout": 15
       }
