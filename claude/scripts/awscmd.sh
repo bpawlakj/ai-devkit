@@ -70,13 +70,32 @@ if [[ -z "$ROLE_ARN" ]]; then
     exit $?
 fi
 
-# ── Resolve source_profile ──
-SOURCE_PROFILE=$(aws configure get source_profile --profile "$PROFILE" 2>/dev/null || echo "default")
+# ── Resolve base source_profile (walk the chain to the credential-holding profile) ──
+resolve_base_profile() {
+    local p="$1"
+    while true; do
+        local sp
+        sp=$(aws configure get source_profile --profile "$p" 2>/dev/null || echo "")
+        if [[ -z "$sp" ]]; then
+            echo "$p"
+            return
+        fi
+        local ra
+        ra=$(aws configure get role_arn --profile "$sp" 2>/dev/null || echo "")
+        if [[ -z "$ra" ]]; then
+            echo "$sp"
+            return
+        fi
+        p="$sp"
+    done
+}
+SOURCE_PROFILE=$(resolve_base_profile "$PROFILE")
 
 # ── Check cached credentials ──
 use_cached=false
 if [[ -f "$CACHE_FILE" ]]; then
-    cache_age=$(( $(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null) ))
+    cache_mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0)
+    cache_age=$(( $(date +%s) - cache_mtime ))
     if (( cache_age < CACHE_TTL )); then
         export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId "$CACHE_FILE")
         export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey "$CACHE_FILE")
@@ -115,7 +134,8 @@ MFA_CACHE_TTL=3500
 # Check if we have a valid MFA session already
 mfa_cached=false
 if [[ -f "$MFA_CACHE" ]]; then
-    mfa_age=$(( $(date +%s) - $(stat -f %m "$MFA_CACHE" 2>/dev/null || stat -c %Y "$MFA_CACHE" 2>/dev/null) ))
+    mfa_mtime=$(stat -c %Y "$MFA_CACHE" 2>/dev/null || stat -f %m "$MFA_CACHE" 2>/dev/null || echo 0)
+    mfa_age=$(( $(date +%s) - mfa_mtime ))
     if (( mfa_age < MFA_CACHE_TTL )); then
         mfa_cached=true
     fi
