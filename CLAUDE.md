@@ -79,4 +79,9 @@ When sudo password is required, use: ask user about it
 - Don't stack workarounds on top of workarounds. Fix the real problem.
 - If stuck after diagnosis, say so and ask — don't silently loop
 
+### 13. Language Policy
+- **All markdown documents (`.md` files) must be written in English** — no exceptions
+- This includes READMEs, changelogs, specs, task files, documentation, and commit-related markdown
+- If the user communicates in another language, still write all `.md` content in English
+
 
