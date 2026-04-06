@@ -136,10 +136,16 @@ if $DO_CLAUDE; then
 
     if [ -f "$CLAUDE_DIR/settings.json" ]; then
         if command -v jq &>/dev/null; then
-            jq -s '.[0] * .[1]' "$CLAUDE_DIR/settings.json" "$SCRIPT_DIR/claude/settings.template.json" \
+            # Merge strategy: hooks always from template (arrays don't merge well),
+            # everything else deep-merged with template winning conflicts
+            jq -s '
+              .[0] as $existing | .[1] as $template |
+              ($existing | del(.hooks)) * ($template | del(.hooks))
+              | .hooks = $template.hooks
+            ' "$CLAUDE_DIR/settings.json" "$SCRIPT_DIR/claude/settings.template.json" \
                 > "$CLAUDE_DIR/settings.json.tmp"
             mv "$CLAUDE_DIR/settings.json.tmp" "$CLAUDE_DIR/settings.json"
-            ok "settings.json merged (template wins for conflicts, existing keys preserved)"
+            ok "settings.json merged (hooks from template, existing user keys preserved)"
         else
             warn "jq not installed — cannot merge settings"
             read -p "  Overwrite settings.json? (y/N) " -n 1 -r
