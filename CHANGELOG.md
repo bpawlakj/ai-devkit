@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-06
+
+### Added
+- **Go language support** — rule (`go.md`), 3 slash commands (`/go-build`, `/go-review`, `/go-test`), 2 agents (`go-build-resolver`, `go-reviewer`), Copilot instruction, goimports/gofmt auto-format hook
+- **PHP language support** — rule (`php.md`), Copilot instruction, Pint/PHP-CS-Fixer auto-format hook
+- Go rule enforces: gofmt/goimports, error wrapping (`%w`), functional options, table-driven tests, race detection, `context.Context` propagation, goroutine safety, gosec
+- PHP rule enforces: PSR-12, `strict_types`, typed properties, immutable DTOs, PHPUnit/Pest, prepared statements, CSRF, `composer audit`
+- `/go-build` command — incremental build error resolution via go-build-resolver agent
+- `/go-review` command — comprehensive Go code review (security, concurrency, idioms) via go-reviewer agent
+- `/go-test` command — TDD workflow with table-driven tests, race detection, 80%+ coverage
+- PostToolUse hook for Go: auto-format with goimports (fallback to gofmt)
+- PostToolUse hook for PHP: auto-format with Pint (fallback to PHP-CS-Fixer)
+- Go and PHP sections added to build-resolver agent
+- Tool checks for `gofmt`, `goimports`, `php-cs-fixer` in setup.sh
+
+### Changed
+- Total rules: 9 → 11
+- Total commands: 7 → 10
+- Total agents: 3 → 5
+- Total hooks: 6 → 8
+- Copilot instructions: 9 → 11
+- `install-to-repo.sh` now supports `go` and `php` language flags
+
 ## [1.1.0] - 2026-04-01
 
 ### Added

@@ -66,6 +66,28 @@
           }
         ],
         "description": "Auto-format JS/TS files with Prettier after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.go ]] && command -v goimports >/dev/null 2>&1 && goimports -w \"$file\" 2>/dev/null || { command -v gofmt >/dev/null 2>&1 && gofmt -w \"$file\" 2>/dev/null; }; exit 0",
+            "timeout": 10
+          }
+        ],
+        "description": "Auto-format Go files with goimports/gofmt after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.php ]] && { command -v pint >/dev/null 2>&1 && pint \"$file\" 2>/dev/null || { command -v php-cs-fixer >/dev/null 2>&1 && php-cs-fixer fix \"$file\" --quiet 2>/dev/null; }; }; exit 0",
+            "timeout": 15
+          }
+        ],
+        "description": "Auto-format PHP files with Pint/PHP-CS-Fixer after edits"
       }
     ],
     "UserPromptSubmit": [

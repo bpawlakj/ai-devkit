@@ -40,6 +40,18 @@ You are a Build Error Resolution Specialist. Fix compilation, build, and depende
 - Check `tsconfig.json` paths, `moduleResolution`, `target`
 - For monorepos: verify workspace references
 
+### Go
+- `go build ./...` for compilation errors, `go vet ./...` for static analysis
+- `go mod tidy` for dependency issues, `go mod verify` for checksum problems
+- Check `go.mod` for `replace` directives and version conflicts
+- For interface errors: verify method signatures match (pointer vs value receivers)
+
+### PHP
+- `composer install` or `composer update` for dependency issues
+- `composer audit` for security vulnerabilities in dependencies
+- Check `composer.json` for version constraints and autoload mappings
+- `php -l file.php` for syntax errors, PHPStan/Psalm for type errors
+
 ### Swift / Xcode
 - `swift package resolve` for SPM dependency issues
 - Check minimum deployment target vs API usage

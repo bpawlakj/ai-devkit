@@ -44,7 +44,7 @@ Options:
 
 ## What's Inside
 
-### Rules — Coding Standards (9 files)
+### Rules — Coding Standards (11 files)
 
 Auto-activate based on file type. Enforce language/framework best practices without manual setup.
 
@@ -58,11 +58,13 @@ Auto-activate based on file type. Enforce language/framework best practices with
 | **react** | `*.tsx`, `*.jsx` | Custom hooks, composition patterns, `useMemo`/`useCallback`, error boundaries, accessibility (ARIA, focus), key stability |
 | **angular** | `*.ts`, `*.html`, `angular.json` | Standalone components, OnPush, signals, RxJS (`async` pipe, `takeUntilDestroyed`), reactive forms, TestBed |
 | **node** | `*.ts`, `*.js`, `package.json` | REST API design, N+1 prevention, Redis caching, Bull queues, rate limiting, structured logging, Zod/Joi validation |
+| **go** | `*.go`, `go.mod`, `go.sum` | gofmt/goimports, error wrapping (`%w`), functional options, table-driven tests, race detection, `context.Context`, goroutine safety, gosec |
+| **php** | `*.php`, `composer.json` | PSR-12, `strict_types`, typed properties, immutable DTOs, PHPUnit/Pest, PHP-CS-Fixer/Pint, PHPStan/Psalm, prepared statements, CSRF |
 | **swift-ios** | `*.swift`, `Package.swift` | Swift 6 concurrency (`Sendable`, actors), protocol-oriented design, typed throws, Keychain, SwiftFormat, Swift Testing |
 
 ---
 
-### Commands — Slash Commands (7 files)
+### Commands — Slash Commands (10 files)
 
 Type these directly in Claude Code. For Copilot CLI, cloud commands are available as agents (`@aws`, `@k8s`).
 
@@ -231,6 +233,18 @@ helm list -A                  # ✅ allowed
 
 **Forbidden on production (even with confirmation):** `rds delete-db-instance`, `dynamodb delete-table`, `ec2 terminate-instances`, `cloudformation delete-stack`, `s3 rb`, `kubectl delete namespace/deployment/statefulset`, `kubectl scale --replicas=0`, `helm uninstall`.
 
+#### `/go-build` — Go Build and Fix
+
+Invokes the **go-build-resolver** agent to incrementally fix Go build errors. Runs `go build`, `go vet`, `staticcheck`, `golangci-lint`. Fixes one error at a time, verifying after each change. Stops after 3 failed attempts and escalates.
+
+#### `/go-review` — Go Code Review
+
+Invokes the **go-reviewer** agent for comprehensive Go-specific code review. Checks for race conditions, goroutine leaks, missing error wrapping, SQL injection, and non-idiomatic patterns. Categorizes issues by severity (CRITICAL/HIGH/MEDIUM) and blocks merge on critical findings.
+
+#### `/go-test` — Go TDD Workflow
+
+Enforces test-driven development for Go code: write table-driven tests first (RED), implement minimal code (GREEN), refactor while keeping tests green. Verifies 80%+ coverage with `go test -cover`.
+
 #### `/ship` — Release Flow
 
 Automates the full release cycle:
@@ -277,6 +291,8 @@ Focused agents that can be invoked for specific tasks.
 | security-reviewer | Auto-available as subagent | `@security-reviewer` |
 | build-resolver | Auto-available as subagent | `@build-resolver` |
 | performance-analyzer | Auto-available as subagent | `@performance-analyzer` |
+| go-build-resolver | Auto-available as subagent (or via `/go-build`) | — |
+| go-reviewer | Auto-available as subagent (or via `/go-review`) | — |
 | aws | Via `/aws` slash command (hook-driven) | `@aws` |
 | k8s | Via `/k8s` slash command (hook-driven) | `@k8s` |
 
@@ -310,7 +326,7 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Hooks — Auto-Triggers (6 hooks)
+### Hooks — Auto-Triggers (8 hooks)
 
 Run automatically on specific events. Claude Code only.
 
@@ -321,6 +337,8 @@ Run automatically on specific events. Claude Code only.
 | **google-java-format** | `PostToolUse` (Edit `*.java`) | Auto-format |
 | **swiftformat** | `PostToolUse` (Edit `*.swift`) | Auto-format |
 | **prettier** | `PostToolUse` (Edit `*.ts`/`*.tsx`/`*.js`/`*.jsx`) | Auto-format |
+| **goimports/gofmt** | `PostToolUse` (Edit `*.go`) | Auto-format with goimports (fallback to gofmt) |
+| **php-cs-fixer/pint** | `PostToolUse` (Edit `*.php`) | Auto-format with Pint (fallback to PHP-CS-Fixer) |
 | **safety guard** | `PreToolUse` (Bash) | Blocks `--no-verify`, `push --force` (allows `--force-with-lease`), `reset --hard`, dangerous `rm -rf` |
 
 The cloud dashboard hook is the key mechanism that makes `/aws` and `/k8s` deterministic — `prompt-hook.sh` detects the slash command and runs the corresponding dashboard script, injecting its output as context before Claude processes the prompt.
@@ -377,7 +395,7 @@ Auto-configured in settings.json. Provides 30+ specialized workflows:
 # Only specific languages (security always included)
 ./copilot/install-to-repo.sh /path/to/project --languages java,python
 
-# Available: java, spring-boot, python, typescript, react, angular, node, swift-ios
+# Available: java, spring-boot, python, typescript, react, angular, node, swift-ios, go, php
 ```
 
 This copies `.instructions.md` files to `.github/instructions/` and hooks to `.github/hooks/`. Commit them to share with your team, or add to `.gitignore` for personal use.
@@ -420,6 +438,8 @@ pip install ruff                     # Python linting
 brew install google-java-format      # Java formatting
 brew install swiftformat             # Swift formatting
 npm install -g prettier              # JS/TS formatting
+go install golang.org/x/tools/cmd/goimports@latest  # Go formatting
+composer global require friendsofphp/php-cs-fixer   # PHP formatting
 brew install gh                      # GitHub CLI (for /ship)
 apt install jq                       # JSON merge in setup script
 brew install awscli                  # AWS CLI (for /aws)
@@ -481,9 +501,9 @@ ai-devkit/
 │
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
-│   ├── rules/                       # 9 coding standard files
-│   ├── commands/                    # 7 slash commands
-│   ├── agents/                      # 3 specialized agents
+│   ├── rules/                       # 11 coding standard files
+│   ├── commands/                    # 10 slash commands
+│   ├── agents/                      # 5 specialized agents
 │   └── scripts/                     # 7 scripts (wrappers, dashboards, hooks)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
@@ -512,6 +532,6 @@ ai-devkit/
     │   ├── build-resolver.md        #   Build error resolution
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
-    ├── instructions/                # 9 instruction files (per-repo)
+    ├── instructions/                # 11 instruction files (per-repo)
     └── prompts/                     # 4 prompt templates (copy-paste)
 ```
