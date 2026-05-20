@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-20
+
+### Added
+- **Brownfield onboarding in `/kickoff`** — Step 7 detects brownfield (git history + lockfiles), and if `CLAUDE.md` is absent, offers to invoke Claude Code's built-in `/init` via the Skill tool. Greenfield projects and projects with existing `CLAUDE.md` skip silently. Scaffolding (Steps 1-6) remains independent and idempotent regardless of Step 7 outcome
+- Copilot CLI version of brownfield detection in `copilot/prompts/kickoff.md` — suggests generating `.github/copilot-instructions.md` instead (Copilot has no built-in /init equivalent)
+- **`/atomize` skill** — decomposes `plan.md` into atomic `T-NNN-<slug>.md` task files inside `docs/work/<NNN>-<slug>/` initiative folders. Auto-detects mode: INITIAL (no T-*.md present — propose tasks, write files + initial index.md) or RECONCILIATION (T-*.md exist — diff plan against tasks, verify status:done claims via git log + file presence + user assertion, propose new/revised/obsoleted tasks)
+- `claude/skills/atomize/references/task-schema.md` — canonical schema for T-*.md frontmatter + derived index.md format
+- Reconciliation engine with hard rules: never edit `done` tasks (changes → new follow-up with `depends_on: [<original>]`), never delete task files (obsoletion = status flip), index.md is DERIVED view regenerated from frontmatter (with append-only `## Verification log`), preserve user-added body content
+- 3-layer status:done verification: git log search (commit SHA + task ID + scope files), file presence check (file paths extracted from `## Scope`), user assertion fallback
+- Copilot CLI prompt — `copilot/prompts/atomize.md` for parity
+
+### Changed
+- **Workspace structure overhauled** — `/kickoff` now scaffolds `docs/{architecture,analyzes,reference,work}/` instead of `context/{changes,archive,foundation}/`. Inspired by mature engineering projects (kukuvaia-style): docs accreted by *type* (architecture, research, reference, work) rather than by *change-id*. Includes folder-per-initiative pattern under `docs/work/NNN-<slug>/` for plan + tasks.
+- `/discover` output path: `context/foundation/discover-notes.md` → `docs/discover-notes.md`
+- `/product-spec` output path: `context/foundation/product-spec.md` → `docs/product-spec.md`. Versioned saves: `docs/product-spec-vN.md`
+- `product-spec-schema.md` path references updated
+- README, setup.sh summary, uninstall.sh updated for the new structure and `/atomize` skill
+
+## [1.3.0] - 2026-05-19
+
+### Added
+- **Product discovery skills** — three new Claude Code skills that turn an idea into a structured product spec, adapted from the 10xDevs workflow
+- `/kickoff` — scaffolds the `/context` directory skeleton (`changes/`, `archive/`, `foundation/`) with canonical READMEs. Idempotent; never overwrites
+- `/discover` — facilitates a structured discovery conversation (6 phases: Vision, Access, MVP, FRs, Business Logic, Framing). Auto-detects greenfield vs brownfield from cwd. Produces `context/foundation/discover-notes.md`. Includes empty-CRUD anti-pattern detection, MVP-too-big scope-cost surfacing, Socratic challenge round per FR, soft-gate quality cross-check, and resume-from-checkpoint
+- `/product-spec` — generates `context/foundation/product-spec.md` from discover-notes (or raw notes) against a locked schema. 10 sections for greenfield, 11 for brownfield. Includes thin-input heuristic, technical-leak content lint (7 categories: vendors, schema notation, runtime, mechanism, UI, transport, impl verbs), and versioned-save collision handling
+- `claude/skills/discover/references/product-spec-schema.md` — canonical schema for both skills (frontmatter keys, section order, discover-notes checkpoint format)
+- Copilot CLI parity — `copilot/prompts/kickoff.md`, `discover.md`, `product-spec.md` for users on Copilot
+- `setup.sh` now installs `claude/skills/*` (subfolders with `references/`) into `~/.claude/skills/`
+- `uninstall.sh` removes the three skills
+
+### Changed
+- Setup summary shows skills count alongside rules/commands/agents
+
 ## [1.2.0] - 2026-04-06
 
 ### Added

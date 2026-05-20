@@ -131,6 +131,16 @@ if $DO_CLAUDE; then
         ok "$(basename "$f")"
     done
 
+    header "Claude Code: Skills"
+    mkdir -p "$CLAUDE_DIR/skills"
+    for d in "$SCRIPT_DIR"/claude/skills/*/; do
+        [ -d "$d" ] || continue
+        skill_name="$(basename "$d")"
+        rm -rf "$CLAUDE_DIR/skills/$skill_name"
+        cp -R "$d" "$CLAUDE_DIR/skills/$skill_name"
+        ok "/$skill_name"
+    done
+
     header "Claude Code: Settings (hooks, plugins, MCP)"
     backup_if_exists "$CLAUDE_DIR/settings.json" "$BACKUP_CLAUDE"
 
@@ -271,6 +281,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
+    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (kickoff, discover, product-spec, atomize)"
     echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    7 (ruff, java-format, swiftformat, prettier, goimports, php-cs-fixer, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
@@ -282,7 +293,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  4 templates (ship, retro, changelog, threat-model)"
+    echo "    Prompts:  8 templates (ship, retro, changelog, threat-model, kickoff, discover, product-spec, atomize)"
     echo ""
 fi
 

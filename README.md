@@ -326,6 +326,52 @@ Static code analysis for performance bottlenecks:
 
 ---
 
+### Skills — Product Discovery + Plan Decomposition (4 skills)
+
+Two complementary workflows: (1) idea → product spec, (2) plan → atomic tasks. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+
+| Skill | Purpose | Output |
+|---|---|---|
+| `/kickoff` | Scaffold the `/docs` directory (`architecture/`, `analyzes/`, `reference/`, `work/`) with canonical READMEs. Idempotent — never overwrites. For brownfield projects (git history + lockfile detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis. Greenfield + projects with existing `CLAUDE.md` skip the `/init` step silently. | 5 dirs + 5 READMEs (+ optional `CLAUDE.md`) |
+| `/discover` | Facilitate a structured discovery conversation. Auto-detects greenfield vs brownfield from cwd (git history / lockfiles / manifests). 6 phases: Vision, Access Control, MVP & Success Criteria, FRs & User Stories, Business Logic & NFRs, Product Framing. Empty-CRUD detection, scope-cost surfacing, Socratic challenge per FR, soft-gate cross-check, resumes from checkpoint. | `docs/discover-notes.md` |
+| `/product-spec` | Generate a schema-conformant product spec from `discover-notes.md` (or raw notes). 10 sections for greenfield, 11 for brownfield. Thin-input heuristic, technical-leak content lint (7 categories), versioned-save collision handling. | `docs/product-spec.md` |
+| `/atomize` | Decompose `plan.md` (from Claude Code's `/plan` mode) into atomic `T-NNN-<slug>.md` task files. Auto-detects mode: INITIAL (no T-*.md — propose tasks, write files + index.md) or RECONCILIATION (T-*.md exist — diff plan, verify done claims via 3-layer heuristic, propose new/revised/obsoleted tasks). | `docs/work/<NNN>-<slug>/T-*.md` + `index.md` |
+
+**Workspace layout (`/kickoff` creates):**
+
+```
+docs/
+├── product-spec.md          # (created by /product-spec) — what the product IS
+├── discover-notes.md        # (created by /discover) — transient discovery input
+├── architecture/            # design decisions, system docs
+├── analyzes/                # research/eval BEFORE decisions
+├── reference/               # operational specs (vendor configs, limits)
+└── work/                    # initiatives — folder-per-initiative
+    └── 004-observability-otel/
+        ├── plan.md          # the "thinking doc" (often from /plan mode)
+        ├── index.md         # DERIVED view of task status
+        ├── T-001-otel-deps.md
+        ├── T-002-tracing-config.md
+        └── T-003-metrics-bridge.md
+```
+
+**Two chains:**
+
+- **Idea → spec**: `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
+- **Plan → tasks**: Claude Code's `/plan` → manually copy approved plan into `docs/work/<NNN>-<slug>/plan.md` → `/atomize <folder>`. Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
+
+**Key mechanisms:**
+
+- **Facilitator vs generator separation** (`/discover` vs `/product-spec`) — discover NEVER writes content the user didn't say; product-spec NEVER invents domain rules. Every gap routes verbatim to `## Open Questions`.
+- **Stack openness** — the spec captures product-level priors only. Frameworks, vendors, runtime location, transport, enforcement mechanism are all blocked by the content lint. Brownfield's `## Current System Overview` is the only exception (describes reality, not a choice).
+- **Never edit done tasks** (`/atomize` hard rule) — changes to scope of already-DONE work create NEW follow-up tasks with `depends_on: [<original>]`. Preserves traceability between plan revisions and shipped implementation.
+- **3-layer status:done verification** (`/atomize` reconciliation) — git log (commit SHA + task ID + scope files) → file presence (extracted from `## Scope`) → user assertion fallback for ambiguous cases. Results logged in append-only `## Verification log` inside `index.md`.
+- **Schema as contract** — `claude/skills/discover/references/product-spec-schema.md` (PRD shape) and `claude/skills/atomize/references/task-schema.md` (task + index shape) are single sources of truth. Skills re-read them on every invocation and re-validate before disk writes.
+
+**Copilot CLI:** prompts in `copilot/prompts/kickoff.md`, `discover.md`, `product-spec.md`, `atomize.md` (copy-paste templates).
+
+---
+
 ### Hooks — Auto-Triggers (8 hooks)
 
 Run automatically on specific events. Claude Code only.
@@ -504,6 +550,15 @@ ai-devkit/
 │   ├── rules/                       # 11 coding standard files
 │   ├── commands/                    # 10 slash commands
 │   ├── agents/                      # 5 specialized agents
+│   ├── skills/                      # 4 skills (subfolders + references)
+│   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs
+│   │   ├── discover/                #   /discover — structured discovery
+│   │   │   ├── SKILL.md
+│   │   │   └── references/product-spec-schema.md
+│   │   ├── product-spec/SKILL.md    #   /product-spec — generate spec
+│   │   └── atomize/                 #   /atomize — plan → tasks (initial + reconciliation)
+│   │       ├── SKILL.md
+│   │       └── references/task-schema.md
 │   └── scripts/                     # 7 scripts (wrappers, dashboards, hooks)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
@@ -533,5 +588,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 4 prompt templates (copy-paste)
+    └── prompts/                     # 8 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, atomize
 ```

@@ -61,6 +61,13 @@ if $DO_CLAUDE; then
     info "Removing agents..."
     remove_files "$CLAUDE_DIR/agents" md security-reviewer build-resolver performance-analyzer
 
+    info "Removing skills..."
+    for skill in kickoff discover product-spec atomize; do
+        if [ -d "$CLAUDE_DIR/skills/$skill" ]; then
+            rm -rf "$CLAUDE_DIR/skills/$skill" && ok "Removed /$skill"
+        fi
+    done
+
     echo ""
     warn "NOT removed (may contain manual edits):"
     warn "  ~/.claude/CLAUDE.md"
