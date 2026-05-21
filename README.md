@@ -333,45 +333,65 @@ Three complementary workflows: (1) idea → product spec, (2) per-decision resea
 | Skill | Purpose | Output |
 |---|---|---|
 | `/kickoff` | Scaffold the `/docs` directory (`architecture/`, `analyzes/`, `reference/`, `work/`) with canonical READMEs. Idempotent — never overwrites. For brownfield projects (git history + lockfile detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis. | 5 dirs + 5 READMEs (+ optional `CLAUDE.md`) |
-| `/discover` | Facilitate a structured discovery conversation. Auto-detects greenfield vs brownfield from cwd. 6 phases: Vision, Access Control, MVP & Success Criteria, FRs & User Stories, Business Logic & NFRs, Product Framing. Empty-CRUD detection, Socratic challenge per FR, soft-gate cross-check, resumes from checkpoint. | `docs/discover-notes.md` |
+| `/discover` | Facilitate a structured discovery conversation. Auto-detects greenfield vs brownfield from cwd. 6 phases: Vision, Access Control, Scope & Timeline, FRs & User Stories, Business Logic & NFRs, Product Framing. Scans `docs/reference/` (Step 0.8) for input materials (any file type — PDF, DOCX, link indexes). **Brownfield: inherit-by-reference (Step 0.9)** — auto-scans `docs/product-spec.md`, `docs/architecture/`, latest `docs/work/*/plan.md`; inherited elements land in `## Inherited state` and each phase only asks about the delta. Empty-CRUD detection, Socratic challenge per new/modified FR, soft-gate cross-check, resumes from checkpoint. Professional vocabulary policy — no startup clichés; adapts phrasing to the user's working language. | `docs/discover-notes.md` |
 | `/product-spec` | Generate a schema-conformant product spec from `discover-notes.md` (or raw notes). 10 sections for greenfield, 11 for brownfield. Thin-input heuristic, technical-leak content lint (7 categories), versioned-save collision handling. | `docs/product-spec.md` |
-| `/research` | Per-decision research artifact for a specific technical question. Three modes (interview / investigation with parallel subagents / mixed), three types (decision / technology-evaluation / investigation), reads `docs/reference/` as context heuristically, mandatory anti-bias cross-check (devil's advocate + pre-mortem). | `docs/analyzes/<slug>.md` |
-| `/save-plan` | Bridge Claude Code's built-in `/plan` mode → `docs/work/` convention. Captures plan from inline file arg / conversation context / user paste, derives slug from first heading, computes next NNN, writes verbatim. Optionally chains into `/atomize`. | `docs/work/<NNN>-<slug>/plan.md` |
+| `/research` | Per-decision research artifact for a specific technical question. Three modes (interview / investigation with parallel subagents / mixed), three types (decision / technology-evaluation / investigation). Reads any file type from `docs/reference/` (binaries via sibling `.md` indexes); link-collection markdown files seed Investigation-mode subagents with starter URLs. Citation discipline: web URLs, code paths, and `> Ref:` blockquotes for reference material. Mandatory anti-bias cross-check (devil's advocate + pre-mortem). Same professional vocabulary policy as `/discover`. | `docs/analyzes/<slug>.md` |
+| `/save-plan` | Bridge Claude Code's built-in `/plan` mode → `docs/work/` convention. Captures plan from inline file arg / conversation context / user paste, derives slug from first heading, computes next NNN, writes verbatim. Optionally chains into `/atomize`. Reference citations already in the plan body (from `/discover` / `/research`) flow through unchanged. | `docs/work/<NNN>-<slug>/plan.md` |
 | `/atomize` | Decompose `plan.md` into atomic `T-NNN-<slug>.md` task files. Auto-detects mode: INITIAL (no T-*.md — propose tasks, write files + index.md) or RECONCILIATION (T-*.md exist — diff plan, verify done claims via 3-layer heuristic, propose new/revised/obsoleted tasks). | `docs/work/<NNN>-<slug>/T-*.md` + `index.md` |
 
 **Workspace layout (`/kickoff` creates):**
 
 ```
 docs/
-├── product-spec.md          # (created by /product-spec) — what the product IS
-├── discover-notes.md        # (created by /discover) — transient discovery input
-├── architecture/            # design decisions, system docs
-├── analyzes/                # research/eval BEFORE decisions
-├── reference/               # operational specs (vendor configs, limits)
-└── work/                    # initiatives — folder-per-initiative
+├── product-spec.md             # (created by /product-spec) — what the product IS
+├── discover-notes.md           # (created by /discover) — transient discovery input
+├── architecture/               # design decisions, system docs
+├── analyzes/                   # research snapshots — created by /research
+├── reference/                  # input material — ANY file type (.md/.pdf/.docx/.xlsx/.png/.drawio)
+│   ├── auth-and-providers.md   #   operational spec (markdown)
+│   ├── client-brief.pdf        #   binary source — paired with sibling .md index
+│   ├── client-brief.md         #   sibling index — readable surface for the PDF
+│   └── links-otel-sdks.md      #   link-collection markdown — feeds /research subagents
+└── work/                       # initiatives — folder-per-initiative
     └── 004-observability-otel/
-        ├── plan.md          # the "thinking doc" (often from /plan mode)
-        ├── index.md         # DERIVED view of task status
+        ├── plan.md             # the "thinking doc" (often from /plan mode)
+        ├── index.md            # DERIVED view of task status
         ├── T-001-otel-deps.md
         ├── T-002-tracing-config.md
         └── T-003-metrics-bridge.md
 ```
 
+`docs/reference/` is the project's input pool — `/discover`, `/research`, and `/plan` all read from it. Binaries (`.pdf`, `.docx`, `.xlsx`, etc.) MUST have a sibling `.md` index per `docs/reference/README.md` convention; the index is the readable surface, the binary is the citation target.
+
 **Three workflows:**
 
 - **Idea → spec** (once per project / per major change): `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
-- **Per-decision research** (many times throughout project): `/research <topic>` — runs interview / investigation / mixed, reads relevant `docs/reference/` files, writes a point-in-time snapshot to `docs/analyzes/<slug>.md`. Use BEFORE significant technical choices, not for product-level questions.
+- **Per-decision research** (many times throughout project): `/research <topic>` — runs interview / investigation / mixed, reads relevant `docs/reference/` files (including binaries via their sibling `.md` indexes), writes a point-in-time snapshot to `docs/analyzes/<slug>.md`. Use BEFORE significant technical choices, not for product-level questions.
 - **Plan → tasks**: Claude Code's `/plan` mode → `/save-plan` (captures from conversation context, writes `docs/work/<NNN>-<slug>/plan.md`) → `/atomize` (auto-chained, opt-in). Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
+
+**Cycle position of each layer** — what each skill decides:
+
+```
+/discover     →  WHAT to build (or change) and FOR WHOM       product layer
+/product-spec →  WHAT, written to schema                      product layer
+/research     →  WHICH option / library / approach            decision layer
+/plan         →  HOW to build it (sequencing, decomposition)  implementation layer
+/save-plan    →  persist the plan to disk                     bridge to docs/work/
+/atomize     →  break the plan into atomic tasks              implementation layer
+```
 
 **Key mechanisms:**
 
 - **Facilitator vs generator separation** (`/discover` vs `/product-spec`) — discover NEVER writes content the user didn't say; product-spec NEVER invents domain rules. Every gap routes verbatim to `## Open Questions`.
+- **Reference materials are input, not output.** `docs/reference/` accepts any file type — markdown, PDFs, DOCX, XLSX, drawio diagrams, curated link indexes. `/discover` (Step 0.8) and `/research` (Step 4) scan this directory, let the user pick what is in-scope, and thread citations through with `> Ref: docs/reference/<file>` blockquotes. Binaries pair with a sibling `.md` index — the index is the readable surface, the binary is the citation target.
+- **Inherit-by-reference (brownfield `/discover` Step 0.9).** Systems evolve, they do not rebuild. `/discover` automatically scans `docs/product-spec.md`, `docs/architecture/*.md`, and the latest `docs/work/*/plan.md` for already-documented elements (vision, persona, access control, business logic, FR baseline, NFRs, `product_type`, `target_scale`). Inherited elements land once in `## Inherited state`; each subsequent phase opens with the inherited value visible and asks only about the delta. Re-elicitation is opt-in for revolutionary rebuilds.
+- **Professional language policy.** All skills avoid startup vocabulary (no "pain", "burning need", "killer feature", "ship it", "scope creep", "growth hack"). They use neutral terms instead — problem, friction, trigger event, current cost, release, scope expansion. When the user writes in a non-English language, skills adapt phrasing idiomatically (Polish: `problem` → "problem", NOT "ból"; `friction` → "punkt tarcia"; `release` → "wdrożenie", NOT "ship") instead of translating literally.
 - **Stack openness** — the spec captures product-level priors only. Frameworks, vendors, runtime location, transport, enforcement mechanism are all blocked by the content lint. Brownfield's `## Current System Overview` is the only exception (describes reality, not a choice).
 - **Never edit done tasks** (`/atomize` hard rule) — changes to scope of already-DONE work create NEW follow-up tasks with `depends_on: [<original>]`. Preserves traceability between plan revisions and shipped implementation.
 - **3-layer status:done verification** (`/atomize` reconciliation) — git log (commit SHA + task ID + scope files) → file presence (extracted from `## Scope`) → user assertion fallback for ambiguous cases. Results logged in append-only `## Verification log` inside `index.md`.
 - **Schema as contract** — `claude/skills/discover/references/product-spec-schema.md` (PRD shape) and `claude/skills/atomize/references/task-schema.md` (task + index shape) are single sources of truth. Skills re-read them on every invocation and re-validate before disk writes.
 
-**Copilot CLI:** prompts in `copilot/prompts/kickoff.md`, `discover.md`, `product-spec.md`, `atomize.md` (copy-paste templates).
+**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `kickoff.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`.
 
 ---
 
