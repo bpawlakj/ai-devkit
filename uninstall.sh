@@ -62,7 +62,7 @@ if $DO_CLAUDE; then
     remove_files "$CLAUDE_DIR/agents" md security-reviewer build-resolver performance-analyzer
 
     info "Removing skills..."
-    for skill in kickoff discover product-spec atomize; do
+    for skill in kickoff discover product-spec atomize research save-plan; do
         if [ -d "$CLAUDE_DIR/skills/$skill" ]; then
             rm -rf "$CLAUDE_DIR/skills/$skill" && ok "Removed /$skill"
         fi

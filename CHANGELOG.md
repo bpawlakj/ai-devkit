@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-05-20
+
+### Added
+- **`/save-plan` skill** — bridges Claude Code's built-in `/plan` mode (which only displays a plan) to the `docs/work/` convention (where plans need to live as files). Captures plan from one of three sources in priority order (inline file arg → most recent plan in conversation context → user paste), derives slug from first heading (first 5 meaningful words, kebab-case), computes next NNN by scanning `docs/work/`, writes `plan.md` verbatim, then offers to chain into `/atomize`
+- Plan content is sacred — written to disk verbatim, never reformatted or "improved". Only mechanical change: prepend `# <Title>` heading derived from slug if plan starts headingless
+- Collision handling: pick different slug (recommended) / overwrite / save as `plan-v2.md` sibling / cancel
+- Auto-chain to `/atomize` opt-in via AskUserQuestion (default Yes) — decomposes the just-saved plan into T-NNN tasks in one flow
+- Copilot CLI version in `copilot/prompts/save-plan.md`
+
+### Changed
+- Workflow now has explicit bridge from `/plan` mode → `docs/work/` → `/atomize` without manual `mkdir` + paste. Full chain: Claude `/plan` → user approves → `/save-plan` (captures from context) → `/atomize` (auto-chained) = tracked initiative with tasks in 3 commands
+- Setup summary: 6 skills, 10 prompt templates
+
+## [1.5.0] - 2026-05-20
+
+### Added
+- **`/research` skill** — per-decision research: produces a single point-in-time artifact at `docs/analyzes/<slug>.md` capturing context, findings, alternatives, anti-bias cross-check, and decision for a specific technical question (vendor selection, library comparison, technology evaluation, integration investigation). Distinct from `/discover` (product-level) — `/research` is the per-decision research that accretes throughout a project's lifetime
+- Three classification types: `decision` (pick between alternatives), `technology-evaluation` (assess single option), `investigation` (understand existing mechanic)
+- Three execution modes: **interview** (user provides facts, skill structures), **investigation** (skill spawns 2-4 parallel research subagents — official docs / third-party comparisons / code context / pricing), **mixed** (interview first, investigate gaps)
+- Heuristic context gathering from `docs/reference/` via slug-overlap matching; user confirms which files to read as context
+- Mandatory anti-bias cross-check (devil's advocate + pre-mortem) on the leading conclusion before write — user can loop back to revisit findings or switch to alternative
+- Collision handling for existing research docs: read existing first / write follow-up (`<slug>-followup.md` with `Supersedes:` link) / overwrite / cancel
+- Copilot CLI version in `copilot/prompts/research.md`
+
+### Changed
+- Setup summary string updated to list 5 skills; prompts string updated to list 9 templates
+
 ## [1.4.0] - 2026-05-20
 
 ### Added

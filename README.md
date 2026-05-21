@@ -326,16 +326,18 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Product Discovery + Plan Decomposition (4 skills)
+### Skills — Discovery + Research + Plan Workflow (6 skills)
 
-Two complementary workflows: (1) idea → product spec, (2) plan → atomic tasks. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Three complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
-| `/kickoff` | Scaffold the `/docs` directory (`architecture/`, `analyzes/`, `reference/`, `work/`) with canonical READMEs. Idempotent — never overwrites. For brownfield projects (git history + lockfile detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis. Greenfield + projects with existing `CLAUDE.md` skip the `/init` step silently. | 5 dirs + 5 READMEs (+ optional `CLAUDE.md`) |
-| `/discover` | Facilitate a structured discovery conversation. Auto-detects greenfield vs brownfield from cwd (git history / lockfiles / manifests). 6 phases: Vision, Access Control, MVP & Success Criteria, FRs & User Stories, Business Logic & NFRs, Product Framing. Empty-CRUD detection, scope-cost surfacing, Socratic challenge per FR, soft-gate cross-check, resumes from checkpoint. | `docs/discover-notes.md` |
+| `/kickoff` | Scaffold the `/docs` directory (`architecture/`, `analyzes/`, `reference/`, `work/`) with canonical READMEs. Idempotent — never overwrites. For brownfield projects (git history + lockfile detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis. | 5 dirs + 5 READMEs (+ optional `CLAUDE.md`) |
+| `/discover` | Facilitate a structured discovery conversation. Auto-detects greenfield vs brownfield from cwd. 6 phases: Vision, Access Control, MVP & Success Criteria, FRs & User Stories, Business Logic & NFRs, Product Framing. Empty-CRUD detection, Socratic challenge per FR, soft-gate cross-check, resumes from checkpoint. | `docs/discover-notes.md` |
 | `/product-spec` | Generate a schema-conformant product spec from `discover-notes.md` (or raw notes). 10 sections for greenfield, 11 for brownfield. Thin-input heuristic, technical-leak content lint (7 categories), versioned-save collision handling. | `docs/product-spec.md` |
-| `/atomize` | Decompose `plan.md` (from Claude Code's `/plan` mode) into atomic `T-NNN-<slug>.md` task files. Auto-detects mode: INITIAL (no T-*.md — propose tasks, write files + index.md) or RECONCILIATION (T-*.md exist — diff plan, verify done claims via 3-layer heuristic, propose new/revised/obsoleted tasks). | `docs/work/<NNN>-<slug>/T-*.md` + `index.md` |
+| `/research` | Per-decision research artifact for a specific technical question. Three modes (interview / investigation with parallel subagents / mixed), three types (decision / technology-evaluation / investigation), reads `docs/reference/` as context heuristically, mandatory anti-bias cross-check (devil's advocate + pre-mortem). | `docs/analyzes/<slug>.md` |
+| `/save-plan` | Bridge Claude Code's built-in `/plan` mode → `docs/work/` convention. Captures plan from inline file arg / conversation context / user paste, derives slug from first heading, computes next NNN, writes verbatim. Optionally chains into `/atomize`. | `docs/work/<NNN>-<slug>/plan.md` |
+| `/atomize` | Decompose `plan.md` into atomic `T-NNN-<slug>.md` task files. Auto-detects mode: INITIAL (no T-*.md — propose tasks, write files + index.md) or RECONCILIATION (T-*.md exist — diff plan, verify done claims via 3-layer heuristic, propose new/revised/obsoleted tasks). | `docs/work/<NNN>-<slug>/T-*.md` + `index.md` |
 
 **Workspace layout (`/kickoff` creates):**
 
@@ -355,10 +357,11 @@ docs/
         └── T-003-metrics-bridge.md
 ```
 
-**Two chains:**
+**Three workflows:**
 
-- **Idea → spec**: `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
-- **Plan → tasks**: Claude Code's `/plan` → manually copy approved plan into `docs/work/<NNN>-<slug>/plan.md` → `/atomize <folder>`. Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
+- **Idea → spec** (once per project / per major change): `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
+- **Per-decision research** (many times throughout project): `/research <topic>` — runs interview / investigation / mixed, reads relevant `docs/reference/` files, writes a point-in-time snapshot to `docs/analyzes/<slug>.md`. Use BEFORE significant technical choices, not for product-level questions.
+- **Plan → tasks**: Claude Code's `/plan` mode → `/save-plan` (captures from conversation context, writes `docs/work/<NNN>-<slug>/plan.md`) → `/atomize` (auto-chained, opt-in). Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
 
 **Key mechanisms:**
 
@@ -550,12 +553,14 @@ ai-devkit/
 │   ├── rules/                       # 11 coding standard files
 │   ├── commands/                    # 10 slash commands
 │   ├── agents/                      # 5 specialized agents
-│   ├── skills/                      # 4 skills (subfolders + references)
-│   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs
-│   │   ├── discover/                #   /discover — structured discovery
+│   ├── skills/                      # 6 skills (subfolders + references)
+│   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
+│   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
 │   │   │   └── references/product-spec-schema.md
 │   │   ├── product-spec/SKILL.md    #   /product-spec — generate spec
+│   │   ├── research/SKILL.md        #   /research — per-decision research → docs/analyzes/
+│   │   ├── save-plan/SKILL.md       #   /save-plan — bridge /plan mode → docs/work/
 │   │   └── atomize/                 #   /atomize — plan → tasks (initial + reconciliation)
 │   │       ├── SKILL.md
 │   │       └── references/task-schema.md
@@ -588,5 +593,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 8 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, atomize
+    └── prompts/                     # 10 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, research, save-plan, atomize
 ```
