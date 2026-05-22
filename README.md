@@ -326,9 +326,9 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Discovery + Research + Plan Workflow (6 skills)
+### Skills — Discovery → Plan → Execute → Audit Workflow (9 skills)
 
-Three complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Four complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
@@ -338,6 +338,9 @@ Three complementary workflows: (1) idea → product spec, (2) per-decision resea
 | `/research` | Per-decision research artifact for a specific technical question. Three modes (interview / investigation with parallel subagents / mixed), three types (decision / technology-evaluation / investigation). Reads any file type from `docs/reference/` (binaries via sibling `.md` indexes); link-collection markdown files seed Investigation-mode subagents with starter URLs. Citation discipline: web URLs, code paths, and `> Ref:` blockquotes for reference material. Mandatory anti-bias cross-check (devil's advocate + pre-mortem). Same professional vocabulary policy as `/discover`. | `docs/analyzes/<slug>.md` |
 | `/save-plan` | Bridge Claude Code's built-in `/plan` mode → `docs/work/` convention. Captures plan from inline file arg / conversation context / user paste, derives slug from first heading, computes next NNN, writes verbatim. Optionally chains into `/atomize`. Reference citations already in the plan body (from `/discover` / `/research`) flow through unchanged. | `docs/work/<NNN>-<slug>/plan.md` |
 | `/atomize` | Decompose `plan.md` into atomic `T-NNN-<slug>.md` task files. Auto-detects mode: INITIAL (no T-*.md — propose tasks, write files + index.md) or RECONCILIATION (T-*.md exist — diff plan, verify done claims via 3-layer heuristic, propose new/revised/obsoleted tasks). | `docs/work/<NNN>-<slug>/T-*.md` + `index.md` |
+| `/implement` | Execute a T-NNN-*.md task, an initiative folder (picks next unblocked pending task), or a standalone `plan.md` through three gates per task: pre-execution (clean tree, branch, dependencies, runner detected, baseline green) → in-execution (red/green/refactor or write-then-test, affected-only test selectors) → post-execution (full suite, commit one task per SHA, frontmatter writeback `status: done` + `commit:` + `completed:`). Closes the loop with `/atomize` reconciliation. Auto-detects runner from `package.json` / `pyproject.toml` / `go.mod` / `pom.xml` / `build.gradle*` / `Cargo.toml` / `composer.json` / `Package.swift` / `mix.exs` / `Gemfile` / `.csproj`. Lesson capture on abandon. Optional `security-reviewer` + `performance-analyzer` Agent invocation before commit. Never `git add -A`, never pushes. | Commits + updated `T-*.md` frontmatter (+ optional `docs/reference/lessons.md` entry) |
+| `/agents-md` | Author `AGENTS.md` as the canonical project-rules file with a thin `CLAUDE.md` import shim (`@AGENTS.md`) and optional `.github/copilot-instructions.md` shim — Claude Code, Codex, Cursor, Copilot all read the same file. Anti-duplication: inventories `~/.claude/rules/*.md` and refuses to propose rules already auto-active there. Test-of-inclusion gate per candidate rule — every rule must cite a real anchor (`docs/product-spec.md` § …, `docs/architecture/*.md` decision, `docs/reference/lessons.md` entry, incident reference). U-shaped attention layout (Critical → Conventions → Workflow → References). Size budget warning at 200 lines; auto-proposes split into `<area>/AGENTS.md` over 250. | `AGENTS.md` + `CLAUDE.md` shim (+ optional Copilot shim) |
+| `/rule-review` | Audit an existing rules file (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.github/instructions/*.md`) across **7 dimensions**: (1) length vs ~200-line ceiling, (2) embedded code/config blocks, (3) language precision (weak verbs, empty intent), (4) redundancy vs `~/.claude/rules/` auto-active layer with concrete citations, (5) order (critical rules in top third), **(6) cross-tool drift** when AGENTS.md / CLAUDE.md / copilot-instructions co-exist, **(7) dead rules** via codebase grep for the patterns each rule targets. Read-only by default; `--fix` flag applies safe rewrites only (redundancy removal, section reorder, dead-rule marking). Backs up to `<path>.bak-YYYYMMDD-HHMMSS` before any change. | Audit report (+ optional fixed file) |
 
 **Workspace layout (`/kickoff` creates):**
 
@@ -363,11 +366,12 @@ docs/
 
 `docs/reference/` is the project's input pool — `/discover`, `/research`, and `/plan` all read from it. Binaries (`.pdf`, `.docx`, `.xlsx`, etc.) MUST have a sibling `.md` index per `docs/reference/README.md` convention; the index is the readable surface, the binary is the citation target.
 
-**Three workflows:**
+**Four workflows:**
 
 - **Idea → spec** (once per project / per major change): `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
 - **Per-decision research** (many times throughout project): `/research <topic>` — runs interview / investigation / mixed, reads relevant `docs/reference/` files (including binaries via their sibling `.md` indexes), writes a point-in-time snapshot to `docs/analyzes/<slug>.md`. Use BEFORE significant technical choices, not for product-level questions.
 - **Plan → tasks**: Claude Code's `/plan` mode → `/save-plan` (captures from conversation context, writes `docs/work/<NNN>-<slug>/plan.md`) → `/atomize` (auto-chained, opt-in). Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
+- **Execute → audit**: `/implement` drives `T-*.md` execution through pre/per/post gates and writes status back to frontmatter (closes the loop with `/atomize` reconciliation). `/agents-md` authors the project rules file from anchored sources; `/rule-review` audits across 7 dimensions and offers safe auto-fixes. Together they keep the agent productive on a project AND keep the rules file load-bearing instead of bloated.
 
 **Cycle position of each layer** — what each skill decides:
 
@@ -377,7 +381,10 @@ docs/
 /research     →  WHICH option / library / approach            decision layer
 /plan         →  HOW to build it (sequencing, decomposition)  implementation layer
 /save-plan    →  persist the plan to disk                     bridge to docs/work/
-/atomize     →  break the plan into atomic tasks              implementation layer
+/atomize      →  break the plan into atomic tasks             implementation layer
+/implement    →  execute one task with gates + writeback      execution layer
+/agents-md    →  the agent rules contract for this project    onboarding layer
+/rule-review  →  audit that contract on 7 dimensions          onboarding layer
 ```
 
 **Key mechanisms:**
@@ -388,9 +395,12 @@ docs/
 - **Stack openness** — the spec captures product-level priors only. Frameworks, vendors, runtime location, transport, enforcement mechanism are all blocked by the content lint. Brownfield's `## Current System Overview` is the only exception (describes reality, not a choice).
 - **Never edit done tasks** (`/atomize` hard rule) — changes to scope of already-DONE work create NEW follow-up tasks with `depends_on: [<original>]`. Preserves traceability between plan revisions and shipped implementation.
 - **3-layer status:done verification** (`/atomize` reconciliation) — git log (commit SHA + task ID + scope files) → file presence (extracted from `## Scope`) → user assertion fallback for ambiguous cases. Results logged in append-only `## Verification log` inside `index.md`.
+- **Frontmatter writeback closes the loop** (`/implement` Step 7) — after a successful task commit, `status: done`, `commit: <SHA>`, `completed: <date>` land in the T-NNN-*.md frontmatter automatically. `/atomize` reconciliation reads the same fields back; the two skills round-trip without manual edits.
+- **Test of inclusion** (`/agents-md` Step 3) — every candidate rule must answer "could the agent know this without this file?" with a documented "no" plus a citation. Generic best-practice content is rejected up front, before it reaches the file.
+- **Evidence-cited findings** (`/rule-review`) — each verdict prints line numbers, file paths, grep results, or contradicting siblings. No vague "this rule is weak" — every finding is reproducible.
 - **Schema as contract** — `claude/skills/discover/references/product-spec-schema.md` (PRD shape) and `claude/skills/atomize/references/task-schema.md` (task + index shape) are single sources of truth. Skills re-read them on every invocation and re-validate before disk writes.
 
-**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `kickoff.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`.
+**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `kickoff.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`, `implement.md`, `agents-md.md`, `rule-review.md`.
 
 ---
 
@@ -572,7 +582,7 @@ ai-devkit/
 │   ├── rules/                       # 11 coding standard files
 │   ├── commands/                    # 10 slash commands
 │   ├── agents/                      # 5 specialized agents
-│   ├── skills/                      # 6 skills (subfolders + references)
+│   ├── skills/                      # 9 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
@@ -580,9 +590,18 @@ ai-devkit/
 │   │   ├── product-spec/SKILL.md    #   /product-spec — generate spec
 │   │   ├── research/SKILL.md        #   /research — per-decision research → docs/analyzes/
 │   │   ├── save-plan/SKILL.md       #   /save-plan — bridge /plan mode → docs/work/
-│   │   └── atomize/                 #   /atomize — plan → tasks (initial + reconciliation)
+│   │   ├── atomize/                 #   /atomize — plan → tasks (initial + reconciliation)
+│   │   │   ├── SKILL.md
+│   │   │   └── references/task-schema.md
+│   │   ├── implement/               #   /implement — execute tasks with phased gates + frontmatter writeback
+│   │   │   ├── SKILL.md
+│   │   │   └── references/runner-detection.md + commit-policy.md
+│   │   ├── agents-md/               #   /agents-md — author AGENTS.md with anchored content
+│   │   │   ├── SKILL.md
+│   │   │   └── references/test-of-inclusion.md
+│   │   └── rule-review/             #   /rule-review — audit rules file across 7 dimensions
 │   │       ├── SKILL.md
-│   │       └── references/task-schema.md
+│   │       └── references/dimensions.md
 │   └── scripts/                     # 7 scripts (wrappers, dashboards, hooks)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
@@ -612,5 +631,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 10 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, research, save-plan, atomize
+    └── prompts/                     # 13 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review
 ```

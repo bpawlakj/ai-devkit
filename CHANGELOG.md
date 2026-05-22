@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-05-22
+
+### Added
+- **`/implement` skill** — execute one `T-NNN-*.md` task, an initiative folder (picks next unblocked pending task), or a standalone `plan.md` through three gates: pre-execution (clean tree, branch off main, dependency check via `depends_on:`, runner detection, baseline green) → in-execution (red/green/refactor or write-then-test, affected-only test selectors, scope-respecting edits) → post-execution (full suite, one commit per task with deterministic message template, frontmatter writeback `status: done` + `commit:` + `completed:`). Closes the loop with `/atomize` reconciliation. Multi-language runner auto-detection from `package.json` / `pyproject.toml` / `go.mod` / `pom.xml` / `build.gradle*` / `Cargo.toml` / `composer.json` / `Package.swift` / `mix.exs` / `Gemfile` / `.csproj`. Optional `security-reviewer` + `performance-analyzer` Agent invocation before commit. Lesson capture on abandon (append to `docs/reference/lessons.md`). Never `git add -A`, never pushes
+- `claude/skills/implement/references/runner-detection.md` — canonical detection matrix per ecosystem + affected-only selectors + override flow
+- `claude/skills/implement/references/commit-policy.md` — staging rules (never `-A`/`.`), message template, amend policy, hook handling, branch policy, push policy
+- **`/agents-md` skill** — author `AGENTS.md` as the canonical project-rules file with a thin `CLAUDE.md` import shim (`@AGENTS.md`) and an optional `.github/copilot-instructions.md` shim. Anti-duplication: inventories `~/.claude/rules/*.md` and refuses to propose rules already auto-active there. Test-of-inclusion gate enforced up front — every candidate rule must answer "could the agent know this without this file?" with a documented "no" plus an anchor citation (`docs/product-spec.md` § …, `docs/architecture/*.md` decision, `docs/reference/lessons.md` entry, incident reference). U-shaped attention layout (Critical → Conventions → Workflow → References → Out-of-scope). Size budget: ≤150 OK, 151–200 WARN, 201–250 split, >250 strong split push. Scope-aware: can target root `AGENTS.md` or area-specific `<area>/AGENTS.md`
+- `claude/skills/agents-md/references/test-of-inclusion.md` — decision matrix with worked examples for "drop" vs "keep" rules
+- **`/rule-review` skill** — audit a rules file (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.github/instructions/*.md`) across **7 dimensions**: (1) length vs ~200-line ceiling, (2) embedded code/config blocks, (3) language precision via regex on weak verbs / empty intent, (4) redundancy vs `~/.claude/rules/` auto-active layer with cited overlap, (5) order (critical rules in top third via U-shaped attention), **(6) cross-tool drift** when AGENTS.md / CLAUDE.md / copilot-instructions co-exist (side-by-side diffs of divergent rules), **(7) dead rules** via codebase grep for the patterns each rule targets (absent → WARN, forbidden + still present → FAIL with violating files). Read-only by default; `--fix` applies safe rewrites only (redundancy removal, section reorder, dead-rule marking) with backup to `<path>.bak-YYYYMMDD-HHMMSS`
+- `claude/skills/rule-review/references/dimensions.md` — canonical thresholds, triggers, and verdicts per dimension
+- Copilot CLI parity prompts in `copilot/prompts/implement.md`, `agents-md.md`, `rule-review.md`
+- Closed-loop integration: `/atomize` writes T-*.md → `/implement` reads + writes back frontmatter → `/atomize` reconciliation reads the same fields. No manual frontmatter edits needed for the happy path
+
+### Changed
+- README sections rewritten to reflect the four-workflow model (discover → research → plan → execute/audit) with cycle-position table covering all 9 skills
+- `setup.sh` summary: 9 skills, 13 prompt templates (was 6 / 10)
+- `uninstall.sh` skill removal list extended to include `/implement`, `/agents-md`, `/rule-review`
+
+### Why this release exists
+- Designed against 10xDevs 3.0 Module 1 (`/10x-agents-md`, `/10x-rule-review`) and Module 2 (`/10x-implement`) skills, but intentionally NOT clones. Key value-adds: (a) frontmatter writeback closes `/atomize` ↔ `/implement` loop without manual edits, (b) multi-language test runner detection across 11 ecosystems instead of JS/TS-first, (c) anti-duplication against ai-devkit's auto-active `~/.claude/rules/` layer, (d) 7 audit dimensions vs 5 — adds cross-tool drift and dead-rule grep, (e) evidence-cited findings (line numbers, file paths, grep results) instead of opinions, (f) `--fix` safe-rewrite mode with backup
+
 ## [1.6.0] - 2026-05-20
 
 ### Added
