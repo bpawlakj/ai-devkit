@@ -55,6 +55,10 @@ The skill is **anti-duplication**: it greps `~/.claude/rules/` for the rules ai-
 - `~/.claude/rules/*.md` — auto-active language layer. This skill **reads** these to know what NOT to propose. It never modifies them.
 - Claude Code's built-in `/init` — alternative entry point. `/init` analyzes the codebase and proposes everything; this skill goes the opposite way (propose nothing unless anchored). They're complementary — `/init` first, this skill second with `/rule-review` audit.
 
+## Output language
+
+`AGENTS.md`, the `CLAUDE.md` shim, and the optional `.github/copilot-instructions.md` are written in **English**, regardless of the user's chat language. This matches the global policy in `~/.claude/CLAUDE.md` §13. The interactive dialogue during authoring may use the user's working language; the file content on disk is always English so the rules survive team handover and tool changes.
+
 ## What this skill writes
 
 Three files (the second and third are opt-in):

@@ -55,6 +55,10 @@ The contract for task and index file shapes lives at `../atomize/references/task
 - `security-reviewer`, `performance-analyzer` agents — invoked optionally in Step 5 (post-task review) when the user opts in.
 - `docs/reference/lessons.md` — if the user abandons a task mid-flight, the skill offers to append an observation here.
 
+## Output language
+
+All persisted artifacts — commit messages, T-NNN-*.md frontmatter writeback, `## Notes` appendings, `docs/reference/lessons.md` entries — are written in **English**, regardless of the user's chat language. This matches the global policy in `~/.claude/CLAUDE.md` §13. User-facing prompts during the session may follow the user's working language; the disk content is always English so the repo is portable across teams and time.
+
 ## What this skill does not do
 
 - It does not write the code for you in zero shots. It runs **one task at a time**, you steer per task.

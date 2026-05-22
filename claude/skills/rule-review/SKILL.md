@@ -49,6 +49,10 @@ Built on findings from Lulla et al. (well-used `AGENTS.md` → −28% time / −
 - `~/.claude/rules/*.md` — read-only reference. Findings cite specific rules from this layer when flagging redundancy.
 - `docs/reference/lessons.md` — read-only reference. Findings citing "no `Why:`" propose deriving the reason from a matching lessons entry.
 
+## Output language
+
+The audit report and any `--fix` rewrites to the target file are written in **English**, regardless of the user's chat language. This matches the global policy in `~/.claude/CLAUDE.md` §13. Interactive prompts during the audit may use the user's working language; the persisted findings and fixed file content are always English.
+
 ## The seven dimensions
 
 1. **Length** — file size vs ~200-line guideline. Too long ⇒ U-shaped attention drops middle content; rule #47 on line 320 is rarely applied.
