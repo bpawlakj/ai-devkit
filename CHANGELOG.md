@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-05-23
+
+### Added
+- **`/init-permissions` slash command** — drops a canonical per-project `.claude/settings.json` with the M1L3 permission policy from 10xDevs 3.0 (allow routine local operations, ask before network/push/remote side-effects, unconditionally block recursive force-delete). Polyglot allow list covers Node / Python / Go / Rust / Java / PHP / Swift / .NET / Ruby / Elixir tool families plus all local git operations and `Read`/`Edit`/`Write` primitives. Multi-select prompt offers to append Docker / SSH-SCP-rsync / cloud CLIs (aws, gcloud, az, kubectl, helm, terraform) / database CLIs to the `ask` list. Detects existing `.claude/settings.json` with backup / merge / show-diff / cancel options. Auto-suggests adding `.claude/settings.local.json` to `.gitignore` so the team policy commits while machine-specific overrides stay local
+- Copilot CLI / Codex / Cursor parity prompt in `copilot/prompts/init-permissions.md` — detects the harness and writes the closest equivalent (Codex `~/.codex/config.toml` with `sandbox = workspace-write` + `approvals = on-request`, Cursor `~/.cursor/permissions.json`, Copilot CLI per-repo `.github/hooks/pretool.sh`). Claude Code remains the canonical source of truth; other harnesses approximate
+
+### Changed
+- README Commands section: 10 → 11 files, new `/init-permissions` section documents the polyglot defaults and the philosophy ("probabilistic safeguard, not absolute") with a direct reference to M1L3 of 10xDevs 3.0
+- `setup.sh` summary: 14 prompt templates (was 13)
+- `uninstall.sh` commands removal list extended to include `init-permissions`
+
+### Why this release exists
+- Closes a gap surfaced during the trainer-advisor cert project: per-project permission policy was being copy-pasted by hand into every new repo. M1L3 prescribes it as a foundational artifact (alongside the scaffold and the audit report), so it deserves a dedicated command. The canonical version lives in Claude Code; Codex and Cursor get translations because the cross-harness policy contract is identical in spirit (allow / ask / deny + first-match-wins), only the syntax differs
+
 ## [1.7.0] - 2026-05-22
 
 ### Added

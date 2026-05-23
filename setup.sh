@@ -293,7 +293,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  13 templates (ship, retro, changelog, threat-model, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
+    echo "    Prompts:  14 templates (ship, retro, changelog, threat-model, init-permissions, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
     echo ""
 fi
 

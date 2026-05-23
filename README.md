@@ -64,9 +64,23 @@ Auto-activate based on file type. Enforce language/framework best practices with
 
 ---
 
-### Commands — Slash Commands (10 files)
+### Commands — Slash Commands (11 files)
 
 Type these directly in Claude Code. For Copilot CLI, cloud commands are available as agents (`@aws`, `@k8s`).
+
+#### `/init-permissions` — Per-Project Permission Policy
+
+Drops a canonical `.claude/settings.json` into the current project directory with the M1L3 permission policy from 10xDevs 3.0: `allow` for routine local operations (package managers, runtimes, local git, file primitives), `ask` for side-effect operations (network egress, `git push`), `deny` for recursive force-delete. Optionally appends Docker / SSH / cloud-CLI / DB-CLI patterns to `ask` via a multi-select prompt. Detects existing `.claude/settings.json` and offers backup-or-merge before overwriting. Suggests adding `.claude/settings.local.json` to `.gitignore` if a `.gitignore` exists. Polyglot — covers Node / Python / Go / Rust / Java / PHP / Swift / .NET / Ruby / Elixir tool families.
+
+**Claude Code:**
+```
+cd /path/to/your/project
+/init-permissions
+```
+
+**Copilot CLI / Codex / Cursor:** prompt template in `copilot/prompts/init-permissions.md` adapts the same policy to each harness's permission model (Codex `~/.codex/config.toml`, Cursor `~/.cursor/permissions.json`, Copilot per-repo hooks). Claude Code's version is canonical — other harnesses approximate.
+
+Why: M1L3 of 10xDevs 3.0 ("AI-Powered Bootstrap") establishes that per-project permission policy raises the cost of agent mistakes without flooding you with confirmation prompts. The policy is **probabilistic**, not absolute — pair with version control discipline and least-privilege credentials.
 
 #### `/cloud-setup` — Cloud Access Configuration
 
@@ -580,7 +594,7 @@ ai-devkit/
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
 │   ├── rules/                       # 11 coding standard files
-│   ├── commands/                    # 10 slash commands
+│   ├── commands/                    # 11 slash commands
 │   ├── agents/                      # 5 specialized agents
 │   ├── skills/                      # 9 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
@@ -631,5 +645,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 13 prompt templates (copy-paste): ship, retro, changelog, threat-model, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review
+    └── prompts/                     # 14 prompt templates (copy-paste): ship, retro, changelog, threat-model, init-permissions, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review
 ```
