@@ -3,10 +3,12 @@ set -euo pipefail
 
 # ============================================================================
 # Claude Code & Copilot CLI — Unified Setup
-# Usage: ./setup.sh                # Install both (default)
-#        ./setup.sh --claude       # Claude Code only
-#        ./setup.sh --copilot      # Copilot CLI only
-#        ./setup.sh --all          # Both (same as no flag)
+# Usage: ./setup.sh                       # Install both (default)
+#        ./setup.sh --claude              # Claude Code only
+#        ./setup.sh --copilot             # Copilot CLI only
+#        ./setup.sh --all                 # Both (same as no flag)
+#        ./setup.sh --permissions [DIR]   # Per-project permission policy in DIR (default cwd)
+#                                         # Extra flags forwarded: --minimal --force --dry-run --yes
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,15 +46,34 @@ backup_if_exists() {
 DO_CLAUDE=false
 DO_COPILOT=false
 
+# ----------------------------------------------------------------------------
+# --permissions mode: forward to init-project-permissions.sh and exit.
+# Handled before the main flag switch because it shortcircuits the install.
+# ----------------------------------------------------------------------------
+if [ "${1:-}" = "--permissions" ]; then
+    shift
+    PERMS_SCRIPT="$SCRIPT_DIR/claude/scripts/init-project-permissions.sh"
+    if [ ! -x "$PERMS_SCRIPT" ]; then
+        chmod +x "$PERMS_SCRIPT" 2>/dev/null || true
+    fi
+    if [ ! -f "$PERMS_SCRIPT" ]; then
+        echo "Missing: $PERMS_SCRIPT" >&2
+        exit 1
+    fi
+    exec bash "$PERMS_SCRIPT" "$@"
+fi
+
 case "${1:---all}" in
     --claude)  DO_CLAUDE=true ;;
     --copilot) DO_COPILOT=true ;;
     --all)     DO_CLAUDE=true; DO_COPILOT=true ;;
     -h|--help)
-        echo "Usage: $0 [--claude | --copilot | --all]"
-        echo "  --claude   Install Claude Code config only"
-        echo "  --copilot  Install Copilot CLI config only"
-        echo "  --all      Install both (default)"
+        echo "Usage: $0 [--claude | --copilot | --all | --permissions [DIR]]"
+        echo "  --claude        Install Claude Code config only"
+        echo "  --copilot       Install Copilot CLI config only"
+        echo "  --all           Install both (default)"
+        echo "  --permissions   Write per-project .claude/settings.json in DIR (default cwd)"
+        echo "                  Forwards extra flags: --minimal --force --dry-run --yes"
         exit 0 ;;
     *) echo "Unknown flag: $1. Use --help for usage."; exit 1 ;;
 esac
@@ -293,7 +314,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  14 templates (ship, retro, changelog, threat-model, init-permissions, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
+    echo "    Prompts:  14 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
     echo ""
 fi
 

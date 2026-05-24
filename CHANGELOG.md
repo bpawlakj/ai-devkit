@@ -5,19 +5,28 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.0] - 2026-05-23
-
-### Added
-- **`/init-permissions` slash command** — drops a canonical per-project `.claude/settings.json` with the M1L3 permission policy from 10xDevs 3.0 (allow routine local operations, ask before network/push/remote side-effects, unconditionally block recursive force-delete). Polyglot allow list covers Node / Python / Go / Rust / Java / PHP / Swift / .NET / Ruby / Elixir tool families plus all local git operations and `Read`/`Edit`/`Write` primitives. Multi-select prompt offers to append Docker / SSH-SCP-rsync / cloud CLIs (aws, gcloud, az, kubectl, helm, terraform) / database CLIs to the `ask` list. Detects existing `.claude/settings.json` with backup / merge / show-diff / cancel options. Auto-suggests adding `.claude/settings.local.json` to `.gitignore` so the team policy commits while machine-specific overrides stay local
-- Copilot CLI / Codex / Cursor parity prompt in `copilot/prompts/init-permissions.md` — detects the harness and writes the closest equivalent (Codex `~/.codex/config.toml` with `sandbox = workspace-write` + `approvals = on-request`, Cursor `~/.cursor/permissions.json`, Copilot CLI per-repo `.github/hooks/pretool.sh`). Claude Code remains the canonical source of truth; other harnesses approximate
+## [1.8.1] - 2026-05-24
 
 ### Changed
-- README Commands section: 10 → 11 files, new `/init-permissions` section documents the polyglot defaults and the philosophy ("probabilistic safeguard, not absolute") with a direct reference to M1L3 of 10xDevs 3.0
-- `setup.sh` summary: 14 prompt templates (was 13)
-- `uninstall.sh` commands removal list extended to include `init-permissions`
+- **Replaced `/init-permissions` slash command (introduced in v1.8.0, never pushed to a release tag) with a shell script at `claude/scripts/init-project-permissions.sh`** — per-project `.claude/settings.json` is **environment configuration**: it has to exist on disk before the agent starts the session it controls. A slash command lives inside the agent's session, so writing the policy from there is chicken-and-egg (the agent writes its own pre-conditions). A shell script runs outside the agent — the file lands first, then you start Claude Code in that directory. Same artifact, correct lifecycle. The `/init-permissions` markdown file at `claude/commands/init-permissions.md` is removed
+- Surface change: instead of typing `/init-permissions` inside Claude, run `./setup.sh --permissions` or `./update.sh --permissions` (or call the script directly: `bash ~/.claude/scripts/init-project-permissions.sh`)
+
+## [1.8.0] - 2026-05-24
+
+### Added
+- **`claude/scripts/init-project-permissions.sh`** — writes a per-project `.claude/settings.json` with the M1L3 permission policy from 10xDevs 3.0. Polyglot allow list covers Node / Python / Go / Rust / Java / PHP / Swift / .NET / Ruby / Elixir tool families plus all local git operations and `Read`/`Edit`/`Write` primitives. Default `ask` list includes network egress (`curl`, `wget`), `git push`, plus Docker, SSH-SCP-rsync, cloud CLIs (aws, gcloud, az, kubectl, helm, terraform), and database CLIs (psql, mysql, redis-cli, mongosh). Deny list is unconditional: recursive force-delete. Flags: `--minimal` (base ask only), `--force` (no prompts), `--dry-run` (print only), `--yes` (auto-confirm), positional target dir or `--target DIR`. Backs up existing `.claude/settings.json` to `.bak-YYYYMMDD-HHMMSS` before overwrite. Offers to append `.claude/settings.local.json` to `.gitignore` when one exists. Bash-3.2 compatible (works on stock macOS bash without homebrew). Installed to `~/.claude/scripts/` by `setup.sh`
+- **`setup.sh --permissions [DIR]`** — shortcut that exec's the script with forwarded flags. Run from anywhere; default target is the current working directory. Skips the whole installer flow when this flag is present
+- **`update.sh --permissions [DIR]`** — same shortcut on the update side. No git pull, no reinstall — just refresh the project policy
+- **Copilot CLI / Codex / Cursor docs** in `copilot/prompts/init-permissions.md` — documents how to apply the same policy on other harnesses (Codex `~/.codex/config.toml` with `sandbox = workspace-write` + `approvals = on-request`, Cursor `~/.cursor/permissions.json`, Copilot CLI per-repo `.github/hooks/pretool.sh`). Claude Code remains the canonical source of truth; other harnesses approximate
+
+### Changed
+- README Quick Start: added "Per-project permission policy" subsection right after Updating, documenting the `--permissions` flag on both `setup.sh` and `update.sh` with examples for `--minimal` / `--force` / `--dry-run` / `--yes` forwarding
+- README Scripts table: 7 → 9 files (added `cloud-guard.sh` documentation row + new `init-project-permissions.sh`)
+- README tree diagram: scripts count 7 → 9
+- `setup.sh` summary line annotated for the init-permissions prompt as shell-script docs (not a slash command)
 
 ### Why this release exists
-- Closes a gap surfaced during the trainer-advisor cert project: per-project permission policy was being copy-pasted by hand into every new repo. M1L3 prescribes it as a foundational artifact (alongside the scaffold and the audit report), so it deserves a dedicated command. The canonical version lives in Claude Code; Codex and Cursor get translations because the cross-harness policy contract is identical in spirit (allow / ask / deny + first-match-wins), only the syntax differs
+- Per-project permission policy was being copy-pasted by hand into every new repo discovered during the trainer-advisor cert project. M1L3 prescribes it as a foundational artifact (alongside scaffold + audit report), so it deserves first-class tooling. **The artifact is environment configuration — it must exist on disk before the agent starts the session it controls.** That makes a slash command the wrong abstraction (chicken-and-egg: the agent writing its own pre-conditions). A shell script invoked from `setup.sh --permissions` / `update.sh --permissions` is the right shape: the file lands before the agent ever reads it
 
 ## [1.7.0] - 2026-05-22
 

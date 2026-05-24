@@ -40,6 +40,41 @@ Options:
 
 > `setup.sh` also checks for updates automatically and shows a notification if a newer version exists.
 
+### Per-project permission policy (`--permissions`)
+
+Drop a canonical `.claude/settings.json` into any project so Claude Code stops asking about every routine command but never gets a blanket waiver on dangerous ones.
+
+```bash
+# From inside your project:
+~/ai-devkit/setup.sh --permissions
+
+# Or point at a specific dir:
+~/ai-devkit/setup.sh --permissions /path/to/project
+
+# Same flag works on update.sh — refresh policy without re-installing the kit:
+~/ai-devkit/update.sh --permissions
+
+# Forward flags to the underlying script:
+~/ai-devkit/setup.sh --permissions --minimal     # base only (no docker/ssh/cloud/db extras in ask)
+~/ai-devkit/setup.sh --permissions --force       # overwrite without prompting
+~/ai-devkit/setup.sh --permissions --dry-run     # print policy, do not write
+~/ai-devkit/setup.sh --permissions --yes         # answer yes to all prompts
+```
+
+Calling either script with `--permissions` shortcuts straight into `claude/scripts/init-project-permissions.sh` (also installed to `~/.claude/scripts/` so you can call it directly: `bash ~/.claude/scripts/init-project-permissions.sh`).
+
+Policy follows M1L3 of 10xDevs 3.0 ("AI-Powered Bootstrap"):
+
+- **allow**: routine local operations — package managers (pnpm/npm/yarn/pip/poetry/uv/cargo/composer/bundle/mix), runtimes (node/python/go/swift/dotnet/rustc), `mvn`/`gradle`, local git operations (`add`/`commit`/`diff`/`log`/`status`/`branch`/`checkout`/`stash`), Claude Code's `Read`/`Edit`/`Write` primitives.
+- **ask**: network egress (`curl`, `wget`), `git push`, and (unless `--minimal`) docker, ssh/scp/rsync, cloud CLIs (aws/gcloud/az/kubectl/helm/terraform), database CLIs (psql/mysql/redis-cli/mongosh).
+- **deny**: recursive force-delete unconditionally.
+
+Evaluation order: `deny → ask → allow`, first match wins.
+
+Existing `.claude/settings.json` is backed up (`.bak-YYYYMMDD-HHMMSS`) before overwrite — set `--force` to skip the prompt. `.claude/settings.local.json` (per-machine override) is untouched; the script offers to add it to `.gitignore` if a `.gitignore` exists.
+
+Why a script and not a slash command: per-project permissions are environment configuration — they must exist on disk before the agent starts the session they control. A slash command would be chicken-and-egg (the agent writing its own pre-conditions). Copilot CLI / Codex / Cursor equivalents (different file formats, similar semantics) are documented in `copilot/prompts/init-permissions.md`.
+
 ---
 
 ## What's Inside
@@ -64,23 +99,9 @@ Auto-activate based on file type. Enforce language/framework best practices with
 
 ---
 
-### Commands — Slash Commands (11 files)
+### Commands — Slash Commands (10 files)
 
 Type these directly in Claude Code. For Copilot CLI, cloud commands are available as agents (`@aws`, `@k8s`).
-
-#### `/init-permissions` — Per-Project Permission Policy
-
-Drops a canonical `.claude/settings.json` into the current project directory with the M1L3 permission policy from 10xDevs 3.0: `allow` for routine local operations (package managers, runtimes, local git, file primitives), `ask` for side-effect operations (network egress, `git push`), `deny` for recursive force-delete. Optionally appends Docker / SSH / cloud-CLI / DB-CLI patterns to `ask` via a multi-select prompt. Detects existing `.claude/settings.json` and offers backup-or-merge before overwriting. Suggests adding `.claude/settings.local.json` to `.gitignore` if a `.gitignore` exists. Polyglot — covers Node / Python / Go / Rust / Java / PHP / Swift / .NET / Ruby / Elixir tool families.
-
-**Claude Code:**
-```
-cd /path/to/your/project
-/init-permissions
-```
-
-**Copilot CLI / Codex / Cursor:** prompt template in `copilot/prompts/init-permissions.md` adapts the same policy to each harness's permission model (Codex `~/.codex/config.toml`, Cursor `~/.cursor/permissions.json`, Copilot per-repo hooks). Claude Code's version is canonical — other harnesses approximate.
-
-Why: M1L3 of 10xDevs 3.0 ("AI-Powered Bootstrap") establishes that per-project permission policy raises the cost of agent mistakes without flooding you with confirmation prompts. The policy is **probabilistic**, not absolute — pair with version control discipline and least-privilege credentials.
 
 #### `/cloud-setup` — Cloud Access Configuration
 
@@ -439,7 +460,7 @@ All formatter hooks use `command -v` guards — silently skip if the tool isn't 
 
 ---
 
-### Scripts — Cloud Wrappers & Hooks (7 files)
+### Scripts — Cloud Wrappers, Hooks, Project Init (9 files)
 
 Installed to `~/.claude/scripts/` by `setup.sh`. These are deterministic bash scripts — not prompts.
 
@@ -451,7 +472,9 @@ Installed to `~/.claude/scripts/` by `setup.sh`. These are deterministic bash sc
 | `k8s-dashboard.sh` | Same as above for Kubernetes environments |
 | `cloud-discover.sh` | Discovers AWS profiles from `~/.aws/config`, outputs JSON for `/cloud-setup` wizard |
 | `cloud-setup.sh` | Interactive terminal wizard for creating `cloud-config.json` (standalone, for Copilot CLI) |
+| `cloud-guard.sh` | PreToolUse safety guard — blocks `--no-verify`, dangerous `rm -rf` patterns, force pushes |
 | `prompt-hook.sh` | `UserPromptSubmit` hook — detects `/aws`, `/k8s`, `/cloud-setup` and injects dashboard output |
+| `init-project-permissions.sh` | Writes per-project `.claude/settings.json` with the M1L3 permission policy. Invoked by `setup.sh --permissions` and `update.sh --permissions`. Polyglot allow list + opt-in extras (Docker / SSH / cloud CLIs / DB CLIs) in `ask` |
 
 ### Plugin — Maister (Claude Code only)
 
@@ -594,7 +617,7 @@ ai-devkit/
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
 │   ├── rules/                       # 11 coding standard files
-│   ├── commands/                    # 11 slash commands
+│   ├── commands/                    # 10 slash commands
 │   ├── agents/                      # 5 specialized agents
 │   ├── skills/                      # 9 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
@@ -616,14 +639,16 @@ ai-devkit/
 │   │   └── rule-review/             #   /rule-review — audit rules file across 7 dimensions
 │   │       ├── SKILL.md
 │   │       └── references/dimensions.md
-│   └── scripts/                     # 7 scripts (wrappers, dashboards, hooks)
+│   └── scripts/                     # 9 scripts (wrappers, dashboards, hooks, project init)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
 │       ├── aws-dashboard.sh         #   AWS environment dashboard
 │       ├── k8s-dashboard.sh         #   K8s environment dashboard
 │       ├── cloud-discover.sh        #   AWS profile discovery (JSON output)
 │       ├── cloud-setup.sh           #   Interactive setup wizard (standalone)
-│       └── prompt-hook.sh           #   UserPromptSubmit hook (dashboard injection)
+│       ├── cloud-guard.sh           #   PreToolUse safety guard (rm -rf, push --force, --no-verify)
+│       ├── prompt-hook.sh           #   UserPromptSubmit hook (dashboard injection)
+│       └── init-project-permissions.sh  # Per-project .claude/settings.json (M1L3 policy)
 │
 ├── tests/                           # BATS unit tests (75 tests)
 │   ├── test_helper.bash             #   Shared setup: temp dirs, mock configs

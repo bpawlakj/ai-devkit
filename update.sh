@@ -5,10 +5,12 @@ set -euo pipefail
 # AI DevKit — Update
 # Checks for new version, shows what changed, pulls, and re-runs setup.
 #
-# Usage: ./update.sh                 # Update and install both (default)
-#        ./update.sh --claude        # Update and install Claude Code only
-#        ./update.sh --copilot       # Update and install Copilot CLI only
-#        ./update.sh --check         # Only check for updates, don't install
+# Usage: ./update.sh                       # Update and install both (default)
+#        ./update.sh --claude              # Update and install Claude Code only
+#        ./update.sh --copilot             # Update and install Copilot CLI only
+#        ./update.sh --check               # Only check for updates, don't install
+#        ./update.sh --permissions [DIR]   # Refresh per-project permission policy in DIR
+#                                          # Forwards extra flags: --minimal --force --dry-run --yes
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,6 +37,20 @@ err()   { echo -e "${RED}[ERR]${NC} $1"; }
 SETUP_FLAG="--all"
 CHECK_ONLY=false
 
+# ----------------------------------------------------------------------------
+# --permissions shortcuts to the project-policy script. No git pull, no reinstall.
+# ----------------------------------------------------------------------------
+if [ "${1:-}" = "--permissions" ]; then
+    shift
+    PERMS_SCRIPT="$SCRIPT_DIR/claude/scripts/init-project-permissions.sh"
+    if [ ! -f "$PERMS_SCRIPT" ]; then
+        echo "Missing: $PERMS_SCRIPT" >&2
+        exit 1
+    fi
+    chmod +x "$PERMS_SCRIPT" 2>/dev/null || true
+    exec bash "$PERMS_SCRIPT" "$@"
+fi
+
 for arg in "$@"; do
     case "$arg" in
         --claude)  SETUP_FLAG="--claude" ;;
@@ -42,12 +58,14 @@ for arg in "$@"; do
         --all)     SETUP_FLAG="--all" ;;
         --check)   CHECK_ONLY=true ;;
         -h|--help)
-            echo "Usage: $0 [--claude | --copilot | --all | --check]"
+            echo "Usage: $0 [--claude | --copilot | --all | --check | --permissions [DIR]]"
             echo ""
-            echo "  --claude   Update and install Claude Code config only"
-            echo "  --copilot  Update and install Copilot CLI config only"
-            echo "  --all      Update and install both (default)"
-            echo "  --check    Only check for updates, don't install"
+            echo "  --claude        Update and install Claude Code config only"
+            echo "  --copilot       Update and install Copilot CLI config only"
+            echo "  --all           Update and install both (default)"
+            echo "  --check         Only check for updates, don't install"
+            echo "  --permissions   Refresh per-project .claude/settings.json in DIR (default cwd)"
+            echo "                  Forwards extra flags: --minimal --force --dry-run --yes"
             exit 0 ;;
         *) echo "Unknown flag: $arg. Use --help for usage."; exit 1 ;;
     esac

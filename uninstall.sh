@@ -56,7 +56,7 @@ if $DO_CLAUDE; then
     remove_files "$CLAUDE_DIR/rules" md security java spring-boot python typescript react angular node swift-ios
 
     info "Removing commands..."
-    remove_files "$CLAUDE_DIR/commands" md ship retro changelog threat-model init-permissions
+    remove_files "$CLAUDE_DIR/commands" md ship retro changelog threat-model
 
     info "Removing agents..."
     remove_files "$CLAUDE_DIR/agents" md security-reviewer build-resolver performance-analyzer
