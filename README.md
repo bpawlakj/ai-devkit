@@ -401,25 +401,35 @@ docs/
 
 `docs/reference/` is the project's input pool — `/discover`, `/research`, and `/plan` all read from it. Binaries (`.pdf`, `.docx`, `.xlsx`, etc.) MUST have a sibling `.md` index per `docs/reference/README.md` convention; the index is the readable surface, the binary is the citation target.
 
-**Four workflows:**
+**Project bootstrap (one-time, outside the agent session):**
+Before any of the four skill workflows below, drop the permission policy onto disk so Claude Code starts the project with safe defaults:
+
+```bash
+~/ai-devkit/setup.sh --permissions   # writes <project>/.claude/settings.json (M1L3 policy)
+```
+
+This is environment configuration — it has to exist before the agent runs (see [`--permissions`](#per-project-permission-policy---permissions) for details). The skill workflows below assume this is already in place.
+
+**Four skill workflows (inside the agent session):**
 
 - **Idea → spec** (once per project / per major change): `/kickoff` → `/discover` → `/product-spec`. Each skill self-bootstraps; `/discover` delegates to `/kickoff` if `docs/` is missing.
 - **Per-decision research** (many times throughout project): `/research <topic>` — runs interview / investigation / mixed, reads relevant `docs/reference/` files (including binaries via their sibling `.md` indexes), writes a point-in-time snapshot to `docs/analyzes/<slug>.md`. Use BEFORE significant technical choices, not for product-level questions.
 - **Plan → tasks**: Claude Code's `/plan` mode → `/save-plan` (captures from conversation context, writes `docs/work/<NNN>-<slug>/plan.md`) → `/atomize` (auto-chained, opt-in). Re-run `/atomize <folder>` whenever the plan changes — it reconciles.
 - **Execute → audit**: `/implement` drives `T-*.md` execution through pre/per/post gates and writes status back to frontmatter (closes the loop with `/atomize` reconciliation). `/agents-md` authors the project rules file from anchored sources; `/rule-review` audits across 7 dimensions and offers safe auto-fixes. Together they keep the agent productive on a project AND keep the rules file load-bearing instead of bloated.
 
-**Cycle position of each layer** — what each skill decides:
+**Cycle position of each layer** — what each step decides:
 
 ```
-/discover     →  WHAT to build (or change) and FOR WHOM       product layer
-/product-spec →  WHAT, written to schema                      product layer
-/research     →  WHICH option / library / approach            decision layer
-/plan         →  HOW to build it (sequencing, decomposition)  implementation layer
-/save-plan    →  persist the plan to disk                     bridge to docs/work/
-/atomize      →  break the plan into atomic tasks             implementation layer
-/implement    →  execute one task with gates + writeback      execution layer
-/agents-md    →  the agent rules contract for this project    onboarding layer
-/rule-review  →  audit that contract on 7 dimensions          onboarding layer
+--permissions →  WHAT the agent is ALLOWED to do (settings.json)   environment layer (run via setup.sh)
+/discover     →  WHAT to build (or change) and FOR WHOM            product layer
+/product-spec →  WHAT, written to schema                           product layer
+/research     →  WHICH option / library / approach                 decision layer
+/plan         →  HOW to build it (sequencing, decomposition)       implementation layer
+/save-plan    →  persist the plan to disk                          bridge to docs/work/
+/atomize      →  break the plan into atomic tasks                  implementation layer
+/implement    →  execute one task with gates + writeback           execution layer
+/agents-md    →  the agent rules contract for this project         onboarding layer
+/rule-review  →  audit that contract on 7 dimensions               onboarding layer
 ```
 
 **Key mechanisms:**
