@@ -210,6 +210,18 @@ commit: <short SHA from `git rev-parse --short HEAD`>
 
 Other frontmatter fields untouched. Body untouched. If a `## Notes` section exists, append a `### Implementation note` subsection with a one-line summary (timestamp + what changed). If `## Notes` is absent, do nothing — don't invent sections.
 
+### Step 7.5: Regenerate docs/work/ROADMAP.md
+
+The task just flipped from `pending` / `in-progress` to `done` — refresh the cross-initiative roadmap so the new state is reflected:
+
+```bash
+bash ~/.claude/scripts/regenerate-roadmap.sh
+```
+
+This rewrites `docs/work/ROADMAP.md` from current state across all initiatives. A done-counter bump moves the initiative's row in the **Active** table (e.g. `3/12 → 4/12`); finishing the last pending task may promote the initiative from **Active** to **Done**.
+
+If `~/.claude/scripts/regenerate-roadmap.sh` is absent (user hasn't installed ai-devkit's scripts layer), print a soft warning and continue. The roadmap is a derived artifact — its absence doesn't block the implement loop.
+
 ### Step 8: Next task or close
 
 | Mode | Behavior |

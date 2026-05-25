@@ -4,12 +4,16 @@ description: >
   Save the most recent plan (from Claude Code's /plan mode or pasted/file
   content) into a new initiative folder docs/work/NNN-<slug>/plan.md, then
   optionally chain into /atomize to decompose it into atomic task files.
+  Auto-detects roadmap-shape plans (top-down sequencing with foundations +
+  slices) and lands them at docs/foundation/roadmap.md instead — see
+  references/roadmap-shape.md for the contract.
   Bridges Claude Code's built-in /plan mode (which only displays the plan)
   to the docs/work/ convention (where plans need to live as files to be
   consumed by /atomize). Auto-detects plan source: inline file arg → recent
   conversation context → ask user to paste.
   Trigger phrases: "save the plan", "save plan", "stash this plan",
-  "create initiative folder", "atomize this plan", "the plan I just approved".
+  "create initiative folder", "atomize this plan", "the plan I just approved",
+  "save the roadmap".
 argument-hint: "[slug] [optional-source-file]"
 allowed-tools:
   - Read
@@ -44,6 +48,7 @@ The skill is intentionally lightweight — it captures + writes + optionally cha
 - **`/atomize`** — downstream. `/save-plan` writes `plan.md`; `/atomize` reads it and writes `T-*.md` task files. Step 6 below offers to auto-chain.
 - **`/kickoff`** — prerequisite. `docs/work/` must exist. If absent, this skill delegates to `/kickoff` via the `Skill` tool.
 - **`docs/reference/`** — NOT scanned by this skill. If the plan came from `/discover` or `/research`, those skills already wove reference citations into the plan content (as `> Ref: docs/reference/<file>` blockquotes); `/save-plan` preserves them verbatim, and `/atomize` reads them downstream from `plan.md` directly.
+- **`docs/foundation/roadmap.md`** — alternative landing site when Step 1.5 detects roadmap-shape (top-down project sequencing with foundations + slices, see `references/roadmap-shape.md`). In that branch the skill skips slug derivation, NNN allocation, and the `/atomize` offer — the roadmap is edited in place over time and its slices each become their own future `/save-plan` invocations.
 
 ## Process
 
@@ -73,18 +78,35 @@ On "Cancel": STOP.
 
 ### Step 1: Resolve plan source
 
-Plan content can come from three sources, in priority order:
+Plan content can come from four sources, in priority order. The skill **picks the highest-priority available source automatically** — no AskUserQuestion for source selection unless the auto-pick is ambiguous (see ambiguity case below). The user can always override with the `--paste` flag.
 
 1. **Inline file argument** — if the second argument is a file path that exists, read it FULLY and use its content. Example: `/save-plan observability-otel ~/scratch/plan.md`.
 
-2. **Conversation context** — if no file arg was provided, look at the **most recent assistant message that contains a plan structure**. Heuristics: it has at least one `# ` heading, multiple `## ` sub-headings, prose paragraphs (not a tool result block). Typically this is the content shown right before the user approved `ExitPlanMode`. If found, capture verbatim as the plan source. Print:
+2. **Claude Code plan store** (`~/.claude/plans/`) — Claude Code's `/plan` mode + `ExitPlanMode` persists the approved plan to this directory as a Markdown file (filename is a random adjective-noun, e.g. `piped-floating-wand.md`). This is the canonical place to look for "the plan I just approved":
+
+   ```bash
+   ls -t ~/.claude/plans/*.md 2>/dev/null | head -3
+   ```
+
+   **Auto-pick**: if at least one file exists, the **newest by mtime is the source** — no prompt. The newest file is almost always the plan the user just approved (which is why they invoked `/save-plan`). Print:
 
    ```
-   Found a recent plan in conversation context (heading: "<top heading>", ~N lines).
-   Using it as the source. Pass --paste to override.
+   Plan source: ~/.claude/plans/<name>.md (mtime: <YYYY-MM-DD HH:MM>, <N> lines).
+   Override with --paste or pass a file path as the second argument.
    ```
 
-3. **Ask user to paste** — if neither source resolved, or if user passed `--paste` as a flag, prompt:
+   **Ambiguity case** — only ask if the top two candidates were modified within the same minute (rare; happens if user approved two plans back-to-back). In that case show both, ask user to pick. Otherwise pick newest silently.
+
+   **Empty directory or absent**: fall through to source 3.
+
+3. **Conversation context** — if no file arg was provided and `~/.claude/plans/` was empty, look at the **most recent assistant message that contains a plan structure**. Heuristics: it has at least one `# ` heading, multiple `## ` sub-headings, prose paragraphs (not a tool result block). Typically this is the content shown right before the user approved `ExitPlanMode`. If found, capture verbatim as the plan source. Print:
+
+   ```
+   Plan source: recent conversation context (heading: "<top heading>", ~N lines).
+   No file in ~/.claude/plans/; using inline content. Pass --paste to override.
+   ```
+
+4. **Ask user to paste** — if no prior source resolved, or if user passed `--paste` as a flag, prompt:
 
    ```
    No plan source detected. Paste the plan content below (end with an empty line):
@@ -92,7 +114,85 @@ Plan content can come from three sources, in priority order:
 
    Read input until empty line. Treat that as the plan source.
 
-If after all three the source is still empty: print "No plan content provided. STOP." and exit.
+If after all four the source is still empty: print "No plan content provided. STOP." and exit.
+
+### Step 1.5: Detect roadmap-shape
+
+The plan source might be a **top-down roadmap** (sequences multiple slices across the project) rather than an **initiative-level plan** (one coherent change-set). These two artifacts have different lifecycles, locations, and downstream consumers — and the user almost always wants to land them differently.
+
+See `references/roadmap-shape.md` for the full contract (when to use each shape, minimal template, anti-patterns).
+
+**Heuristic.** Classify as roadmap-shape if **any** of:
+
+- Top-level `# ` heading matches `^# *Roadmap` (case-insensitive)
+- Body contains a `## Slices` heading (case-insensitive)
+- Body contains both `## Foundations` AND any of `## Slices`, `## Vertical slices`, `## Milestones`
+
+Otherwise: initiative-level. Skip to Step 2 silently.
+
+**On roadmap-shape match**: ask one question to confirm classification:
+
+AskUserQuestion:
+- question: "This plan looks like a top-down roadmap (foundations + slices sequencing). Save as project roadmap or as a regular initiative plan?"
+  header: "Plan kind"
+  options:
+  - label: "Project roadmap → docs/foundation/roadmap.md (Recommended)"
+    description: "Lands at docs/foundation/roadmap.md. One per project, edited in place over time. Skips slug/NNN/atomize — slices are individual /save-plan invocations later."
+  - label: "Initiative plan → docs/work/NNN-<slug>/"
+    description: "Treat as a regular change-set plan despite the section names. Continues normal flow (Step 2 onward)."
+  - label: "Cancel"
+    description: "Exit without writes."
+  multiSelect: false
+
+On "Initiative plan": continue with Step 2 (skip the roadmap branch).
+On "Cancel": STOP.
+On "Project roadmap": proceed with the roadmap branch below, then STOP after Step 1.5.
+
+**Roadmap branch (replaces Steps 2-7):**
+
+1. `mkdir -p docs/foundation/` (idempotent — no error if it exists).
+2. **Collision check** for `docs/foundation/roadmap.md`:
+
+   AskUserQuestion (only if file exists):
+   - question: "docs/foundation/roadmap.md already exists. How to proceed?"
+     header: "Roadmap exists"
+     options:
+     - label: "Save as roadmap-v2.md sibling (Recommended)"
+       description: "Preserves prior roadmap verbatim. New plan lands at roadmap-v2.md (or v3, v4...). The active roadmap then needs a manual decision: keep v1, swap to v2, or merge."
+     - label: "Overwrite existing roadmap.md"
+       description: "Replace existing roadmap. Lost unless committed. Use when the new content fully supersedes."
+     - label: "Cancel"
+       description: "Exit without writes."
+     multiSelect: false
+
+   Versioned save scans for `roadmap-v*.md` to pick next slot. If no collision, write directly to `roadmap.md`.
+
+3. Write the plan content verbatim. If it has no top-level heading, prepend `# Roadmap\n\n`.
+
+4. **Skip ROADMAP.md regeneration** — `docs/work/ROADMAP.md` is a derived rollup of in-flight initiatives; the new top-down roadmap doesn't change that view. The two files coexist by design (see `references/roadmap-shape.md` § "Two ROADMAP files exist on purpose").
+
+5. **Do NOT offer `/atomize`.** A roadmap is not a change-set; its slices become individual `/save-plan` invocations later (each one IS a change-set and IS atomizable).
+
+6. Print:
+
+   ```
+   ═══════════════════════════════════════════════════════════
+     ROADMAP SAVED
+   ═══════════════════════════════════════════════════════════
+
+     Path:    docs/foundation/roadmap.md  (<line-count> lines)
+     Lines:   <count>
+
+     Next:
+       - Pick a slice marked `ready`. Run /plan (or /save-plan) on it
+         using its Change ID as the slug.
+       - Each slice → its own docs/work/<NNN>-<change-id>/plan.md.
+       - Edit roadmap.md in place as slices ship (flip status to `done`,
+         add follow-ups to ## Open Questions, etc.).
+   ═══════════════════════════════════════════════════════════
+   ```
+
+   Then STOP. Do not fall through to Step 2.
 
 ### Step 2: Derive slug
 
@@ -194,6 +294,24 @@ Print:
 Plan saved to docs/work/<NNN>-<slug>/plan.md (<line-count> lines)
 ```
 
+### Step 5.5: Regenerate docs/work/ROADMAP.md
+
+A new initiative folder just landed under `docs/work/`. Refresh the roadmap overview so it shows the new entry:
+
+```bash
+bash ~/.claude/scripts/regenerate-roadmap.sh
+```
+
+(If `~/.claude/scripts/regenerate-roadmap.sh` is missing — user hasn't installed ai-devkit's scripts layer — print a soft warning and continue. The roadmap is a derived artifact; absence is not fatal.)
+
+The script:
+
+- Scans every `docs/work/<NNN>-<slug>/` folder.
+- Reads `plan.md` and `T-*.md` frontmatter to categorise each initiative as Active / Backlog / Done / Obsoleted.
+- Rewrites `docs/work/ROADMAP.md` with tables per category, mtimes, and a classification legend.
+
+After the new initiative is written (Step 5), it will appear in **Backlog** (no T-*.md yet). Once `/atomize` runs and `/implement` starts moving tasks, the next regeneration will promote it to Active.
+
 ### Step 6: Offer to atomize
 
 Ask:
@@ -249,6 +367,10 @@ STOP.
 7. **Delegation to /atomize is opt-in.** Default-recommended (Yes), but user can decline. Some users prefer to review the plan on disk before committing to task decomposition.
 
 8. **No reference scanning.** This skill does NOT scan `docs/reference/`. If reference citations belong in the plan, they were inserted upstream by `/discover` or `/research` (as `> Ref: docs/reference/<file>` blockquotes) and are preserved verbatim in `plan.md`. `/atomize` reads the plan and picks up those citations directly.
+
+9. **Roadmap-shape detection is a recommendation, not a verdict.** Step 1.5 asks the user to confirm classification — never auto-routes to `docs/foundation/roadmap.md` without consent. The heuristic catches obvious roadmaps; the user knows their intent. When in doubt, falling through to the normal initiative path is the safe default (a roadmap-shaped doc inside `docs/work/<NNN>-<slug>/plan.md` is harmless; the reverse is not).
+
+10. **`docs/foundation/roadmap.md` is edited in place, never atomized.** It lives once per project as a top-down sequencing artifact. Its slices each become their own `/save-plan` invocations later — that's the right granularity for `/atomize` to chew on. See `references/roadmap-shape.md`.
 
 ## Notes
 
