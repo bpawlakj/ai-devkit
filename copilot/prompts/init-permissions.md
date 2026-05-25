@@ -10,7 +10,6 @@ bash ~/.claude/scripts/init-project-permissions.sh
 
 # Or from the ai-devkit checkout:
 ~/ai-devkit/setup.sh --permissions /path/to/project
-~/ai-devkit/update.sh --permissions /path/to/project
 
 # Forward flags:
 bash ~/.claude/scripts/init-project-permissions.sh --minimal     # base only, no docker/ssh/cloud/db extras

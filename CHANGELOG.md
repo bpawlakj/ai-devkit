@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **`setup.sh` is now the single entry point for both install and update.** Re-running `./setup.sh` fetches `origin/main`, prints the changelog diff, fast-forwards the clone (offering to stash local mods first), then runs the install. Two new flags inherited from the old `update.sh`: `--check` (show update status, do not install) and `--no-pull` (install from working copy as-is, skip the upstream fetch).
+- README "Updating" section rewritten around `./setup.sh`; project-structure tree updated.
+
+### Removed
+- **`update.sh`** — folded into `setup.sh`. Anyone who scripted `./update.sh` should switch to `./setup.sh` (same flags: `--check`, `--claude`, `--copilot`, `--permissions`). Rationale: two entry points with overlapping logic was clutter — install and update are the same operation against a different starting state.
+
 ## [1.8.1] - 2026-05-24
 
 ### Changed

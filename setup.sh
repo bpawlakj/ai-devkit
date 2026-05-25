@@ -3,10 +3,19 @@ set -euo pipefail
 
 # ============================================================================
 # Claude Code & Copilot CLI — Unified Setup
+#
+# Single entry point for both first-time install and upgrades. If a newer
+# version is available on origin/main, setup pulls it in (after offering to
+# stash local modifications) and then re-runs the install. Use --check to
+# inspect the update status without installing, or --no-pull to skip the
+# remote check entirely and install from the working copy as-is.
+#
 # Usage: ./setup.sh                       # Install both (default)
 #        ./setup.sh --claude              # Claude Code only
 #        ./setup.sh --copilot             # Copilot CLI only
 #        ./setup.sh --all                 # Both (same as no flag)
+#        ./setup.sh --check               # Show update status, do not install
+#        ./setup.sh --no-pull             # Skip the upstream fetch/pull step
 #        ./setup.sh --permissions [DIR]   # Per-project permission policy in DIR (default cwd)
 #                                         # Extra flags forwarded: --minimal --force --dry-run --yes
 # ============================================================================
@@ -29,6 +38,7 @@ NC='\033[0m'
 info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 ok()    { echo -e "${GREEN}  [OK]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
+err()   { echo -e "${RED}[ERR]${NC} $1"; }
 header(){ echo -e "\n${BOLD}$1${NC}"; }
 
 backup_if_exists() {
@@ -45,6 +55,8 @@ backup_if_exists() {
 
 DO_CLAUDE=false
 DO_COPILOT=false
+CHECK_ONLY=false
+NO_PULL=false
 
 # ----------------------------------------------------------------------------
 # --permissions mode: forward to init-project-permissions.sh and exit.
@@ -63,20 +75,34 @@ if [ "${1:-}" = "--permissions" ]; then
     exec bash "$PERMS_SCRIPT" "$@"
 fi
 
-case "${1:---all}" in
-    --claude)  DO_CLAUDE=true ;;
-    --copilot) DO_COPILOT=true ;;
-    --all)     DO_CLAUDE=true; DO_COPILOT=true ;;
-    -h|--help)
-        echo "Usage: $0 [--claude | --copilot | --all | --permissions [DIR]]"
-        echo "  --claude        Install Claude Code config only"
-        echo "  --copilot       Install Copilot CLI config only"
-        echo "  --all           Install both (default)"
-        echo "  --permissions   Write per-project .claude/settings.json in DIR (default cwd)"
-        echo "                  Forwards extra flags: --minimal --force --dry-run --yes"
-        exit 0 ;;
-    *) echo "Unknown flag: $1. Use --help for usage."; exit 1 ;;
-esac
+SCOPE_PICKED=false
+for arg in "$@"; do
+    case "$arg" in
+        --claude)   DO_CLAUDE=true;  SCOPE_PICKED=true ;;
+        --copilot)  DO_COPILOT=true; SCOPE_PICKED=true ;;
+        --all)      DO_CLAUDE=true; DO_COPILOT=true; SCOPE_PICKED=true ;;
+        --check)    CHECK_ONLY=true ;;
+        --no-pull)  NO_PULL=true ;;
+        -h|--help)
+            echo "Usage: $0 [--claude | --copilot | --all] [--check | --no-pull] [--permissions [DIR]]"
+            echo ""
+            echo "  --claude        Install Claude Code config only"
+            echo "  --copilot       Install Copilot CLI config only"
+            echo "  --all           Install both (default)"
+            echo "  --check         Show update status (version / changelog diff) and exit"
+            echo "  --no-pull       Skip the upstream fetch/pull step; install from working copy as-is"
+            echo "  --permissions   Write per-project .claude/settings.json in DIR (default cwd)"
+            echo "                  Forwards extra flags: --minimal --force --dry-run --yes"
+            exit 0 ;;
+        *) echo "Unknown flag: $arg. Use --help for usage."; exit 1 ;;
+    esac
+done
+
+# Default scope when none picked: install both.
+if ! $SCOPE_PICKED; then
+    DO_CLAUDE=true
+    DO_COPILOT=true
+fi
 
 echo ""
 echo "========================================"
@@ -85,18 +111,103 @@ echo "========================================"
 echo ""
 
 # ============================================================================
-# Check for newer version (non-blocking)
+# Update check + optional pull
+#
+# When run inside a git repo (the normal install path), setup acts as both
+# installer and updater: fetch origin, compare HEADs, optionally pull, then
+# fall through to the install steps. --check exits after reporting status;
+# --no-pull skips the network step and installs from the working copy.
 # ============================================================================
 
+IS_GIT_REPO=false
 if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
-    if git -C "$SCRIPT_DIR" fetch origin main --quiet 2>/dev/null; then
-        REMOTE_VERSION="$(git -C "$SCRIPT_DIR" show origin/main:VERSION 2>/dev/null | tr -d '[:space:]' || echo "")"
-        if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-            echo -e "${YELLOW}  New version available: ${LOCAL_VERSION} → ${REMOTE_VERSION}${NC}"
-            echo -e "${YELLOW}  Run ${BOLD}./update.sh${NC}${YELLOW} to upgrade.${NC}"
+    IS_GIT_REPO=true
+fi
+
+if $CHECK_ONLY && ! $IS_GIT_REPO; then
+    warn "Not a git repo — --check has nothing to compare against."
+    exit 0
+fi
+
+if $IS_GIT_REPO && ! $NO_PULL; then
+    BRANCH="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD)"
+    REMOTE="origin"
+
+    if git -C "$SCRIPT_DIR" fetch "$REMOTE" "$BRANCH" --quiet 2>/dev/null; then
+        LOCAL_HEAD="$(git -C "$SCRIPT_DIR" rev-parse HEAD)"
+        REMOTE_HEAD="$(git -C "$SCRIPT_DIR" rev-parse "$REMOTE/$BRANCH" 2>/dev/null || echo "$LOCAL_HEAD")"
+        REMOTE_VERSION="$(git -C "$SCRIPT_DIR" show "$REMOTE/$BRANCH:VERSION" 2>/dev/null | tr -d '[:space:]' || echo "")"
+
+        if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
+            if $CHECK_ONLY; then
+                ok "Already up to date (v${LOCAL_VERSION})"
+                echo ""
+                exit 0
+            fi
+        else
+            echo -e "  ${BOLD}${GREEN}Update available: ${LOCAL_VERSION} → ${REMOTE_VERSION:-unknown}${NC}"
             echo ""
+
+            # Changelog diff (only the new lines added)
+            if git -C "$SCRIPT_DIR" show "$REMOTE/$BRANCH:CHANGELOG.md" &>/dev/null; then
+                echo -e "${BOLD}What's new:${NC}"
+                echo "  ----------------------------------------"
+                if git -C "$SCRIPT_DIR" show HEAD:CHANGELOG.md &>/dev/null; then
+                    diff <(git -C "$SCRIPT_DIR" show HEAD:CHANGELOG.md) \
+                         <(git -C "$SCRIPT_DIR" show "$REMOTE/$BRANCH:CHANGELOG.md") \
+                        | grep '^> ' | sed 's/^> /  /' || true
+                else
+                    git -C "$SCRIPT_DIR" show "$REMOTE/$BRANCH:CHANGELOG.md" | head -40 | sed 's/^/  /'
+                fi
+                echo "  ----------------------------------------"
+                echo ""
+            fi
+
+            if $CHECK_ONLY; then
+                info "Run ./setup.sh to apply the update."
+                echo ""
+                exit 0
+            fi
+
+            # Stash local mods if any, then fast-forward.
+            if ! git -C "$SCRIPT_DIR" diff --quiet 2>/dev/null \
+                    || ! git -C "$SCRIPT_DIR" diff --cached --quiet 2>/dev/null; then
+                warn "Local modifications detected:"
+                git -C "$SCRIPT_DIR" diff --name-only        2>/dev/null | sed 's/^/    /'
+                git -C "$SCRIPT_DIR" diff --cached --name-only 2>/dev/null | sed 's/^/    /'
+                echo ""
+                read -p "  Stash changes and pull? (y/N) " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    git -C "$SCRIPT_DIR" stash push -m "ai-devkit-setup-$(date +%Y%m%d-%H%M%S)" >/dev/null
+                    ok "Local changes stashed (restore with: git stash pop)"
+                else
+                    info "Skipping pull. Installing from current working copy."
+                    NO_PULL=true
+                fi
+            fi
+
+            if ! $NO_PULL; then
+                info "Pulling ${REMOTE}/${BRANCH}..."
+                if git -C "$SCRIPT_DIR" pull --ff-only "$REMOTE" "$BRANCH" --quiet; then
+                    # Re-read VERSION after pull
+                    LOCAL_VERSION="$(cat "$VERSION_FILE" 2>/dev/null | tr -d '[:space:]' || echo "unknown")"
+                    ok "Updated to v${LOCAL_VERSION}"
+                    echo ""
+                else
+                    err "Fast-forward pull failed. Local branch has diverged from ${REMOTE}/${BRANCH}."
+                    err "Resolve manually: git pull --rebase ${REMOTE} ${BRANCH}"
+                    exit 1
+                fi
+            fi
         fi
+    else
+        warn "Cannot reach ${REMOTE} — skipping update check, installing from working copy."
+        echo ""
     fi
+elif $CHECK_ONLY; then
+    info "Skipping check (--no-pull). Current version: v${LOCAL_VERSION}"
+    exit 0
 fi
 
 # ============================================================================

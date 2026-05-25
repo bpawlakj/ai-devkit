@@ -20,25 +20,20 @@ Restart your tool after running.
 
 ### Updating
 
+`setup.sh` is the single entry point for both install and upgrades. Re-running it fetches `origin/main`, shows the changelog diff, fast-forwards your clone (after offering to stash local mods), then re-installs:
+
 ```bash
 cd ~/ai-devkit
-./update.sh
+./setup.sh
 ```
-
-This will:
-1. Check if a newer version is available
-2. Show what changed (changelog diff)
-3. Pull the latest changes
-4. Re-run setup automatically
 
 Options:
 ```bash
-./update.sh --check     # Only check, don't install
-./update.sh --claude    # Update Claude Code config only
-./update.sh --copilot   # Update Copilot CLI config only
+./setup.sh --check     # Show update status (version / changelog diff), don't install
+./setup.sh --no-pull   # Install from working copy as-is, skip the upstream fetch
+./setup.sh --claude    # Install/update Claude Code config only
+./setup.sh --copilot   # Install/update Copilot CLI config only
 ```
-
-> `setup.sh` also checks for updates automatically and shows a notification if a newer version exists.
 
 ### Per-project permission policy (`--permissions`)
 
@@ -51,9 +46,6 @@ Drop a canonical `.claude/settings.json` into any project so Claude Code stops a
 # Or point at a specific dir:
 ~/ai-devkit/setup.sh --permissions /path/to/project
 
-# Same flag works on update.sh — refresh policy without re-installing the kit:
-~/ai-devkit/update.sh --permissions
-
 # Forward flags to the underlying script:
 ~/ai-devkit/setup.sh --permissions --minimal     # base only (no docker/ssh/cloud/db extras in ask)
 ~/ai-devkit/setup.sh --permissions --force       # overwrite without prompting
@@ -61,7 +53,7 @@ Drop a canonical `.claude/settings.json` into any project so Claude Code stops a
 ~/ai-devkit/setup.sh --permissions --yes         # answer yes to all prompts
 ```
 
-Calling either script with `--permissions` shortcuts straight into `claude/scripts/init-project-permissions.sh` (also installed to `~/.claude/scripts/` so you can call it directly: `bash ~/.claude/scripts/init-project-permissions.sh`).
+Calling `setup.sh` with `--permissions` shortcuts straight into `claude/scripts/init-project-permissions.sh` (also installed to `~/.claude/scripts/` so you can call it directly: `bash ~/.claude/scripts/init-project-permissions.sh`).
 
 Policy follows M1L3 of 10xDevs 3.0 ("AI-Powered Bootstrap"):
 
@@ -484,7 +476,7 @@ Installed to `~/.claude/scripts/` by `setup.sh`. These are deterministic bash sc
 | `cloud-setup.sh` | Interactive terminal wizard for creating `cloud-config.json` (standalone, for Copilot CLI) |
 | `cloud-guard.sh` | PreToolUse safety guard — blocks `--no-verify`, dangerous `rm -rf` patterns, force pushes |
 | `prompt-hook.sh` | `UserPromptSubmit` hook — detects `/aws`, `/k8s`, `/cloud-setup` and injects dashboard output |
-| `init-project-permissions.sh` | Writes per-project `.claude/settings.json` with the M1L3 permission policy. Invoked by `setup.sh --permissions` and `update.sh --permissions`. Polyglot allow list + opt-in extras (Docker / SSH / cloud CLIs / DB CLIs) in `ask` |
+| `init-project-permissions.sh` | Writes per-project `.claude/settings.json` with the M1L3 permission policy. Invoked by `setup.sh --permissions`. Polyglot allow list + opt-in extras (Docker / SSH / cloud CLIs / DB CLIs) in `ask` |
 
 ### Plugin — Maister (Claude Code only)
 
@@ -615,8 +607,7 @@ Removes rules, commands, and agents. Does NOT touch CLAUDE.md, settings.json, or
 
 ```
 ai-devkit/
-├── setup.sh                         # Unified setup (--claude | --copilot | --all)
-├── update.sh                        # Check for updates and re-install
+├── setup.sh                         # Unified install + update (--claude | --copilot | --all | --check | --no-pull | --permissions)
 ├── release.sh                       # Cut a new release (maintainer only)
 ├── uninstall.sh                     # Unified uninstall (same flags)
 ├── VERSION                          # Current semantic version
