@@ -5,7 +5,7 @@ description: >
   content) into a new initiative folder docs/work/NNN-<slug>/plan.md, then
   optionally chain into /atomize to decompose it into atomic task files.
   Auto-detects roadmap-shape plans (top-down sequencing with foundations +
-  slices) and lands them at docs/foundation/roadmap.md instead — see
+  slices) and lands them at docs/roadmap.md instead — see
   references/roadmap-shape.md for the contract.
   Bridges Claude Code's built-in /plan mode (which only displays the plan)
   to the docs/work/ convention (where plans need to live as files to be
@@ -48,7 +48,7 @@ The skill is intentionally lightweight — it captures + writes + optionally cha
 - **`/atomize`** — downstream. `/save-plan` writes `plan.md`; `/atomize` reads it and writes `T-*.md` task files. Step 6 below offers to auto-chain.
 - **`/kickoff`** — prerequisite. `docs/work/` must exist. If absent, this skill delegates to `/kickoff` via the `Skill` tool.
 - **`docs/reference/`** — NOT scanned by this skill. If the plan came from `/discover` or `/research`, those skills already wove reference citations into the plan content (as `> Ref: docs/reference/<file>` blockquotes); `/save-plan` preserves them verbatim, and `/atomize` reads them downstream from `plan.md` directly.
-- **`docs/foundation/roadmap.md`** — alternative landing site when Step 1.5 detects roadmap-shape (top-down project sequencing with foundations + slices, see `references/roadmap-shape.md`). In that branch the skill skips slug derivation, NNN allocation, and the `/atomize` offer — the roadmap is edited in place over time and its slices each become their own future `/save-plan` invocations.
+- **`docs/roadmap.md`** — alternative landing site when Step 1.5 detects roadmap-shape (top-down project sequencing with foundations + slices, see `references/roadmap-shape.md`). In that branch the skill skips slug derivation, NNN allocation, and the `/atomize` offer — the roadmap is edited in place over time and its slices each become their own future `/save-plan` invocations.
 
 ## Process
 
@@ -136,8 +136,8 @@ AskUserQuestion:
 - question: "This plan looks like a top-down roadmap (foundations + slices sequencing). Save as project roadmap or as a regular initiative plan?"
   header: "Plan kind"
   options:
-  - label: "Project roadmap → docs/foundation/roadmap.md (Recommended)"
-    description: "Lands at docs/foundation/roadmap.md. One per project, edited in place over time. Skips slug/NNN/atomize — slices are individual /save-plan invocations later."
+  - label: "Project roadmap → docs/roadmap.md (Recommended)"
+    description: "Lands at docs/roadmap.md. One per project, edited in place over time. Skips slug/NNN/atomize — slices are individual /save-plan invocations later."
   - label: "Initiative plan → docs/work/NNN-<slug>/"
     description: "Treat as a regular change-set plan despite the section names. Continues normal flow (Step 2 onward)."
   - label: "Cancel"
@@ -151,10 +151,10 @@ On "Project roadmap": proceed with the roadmap branch below, then STOP after Ste
 **Roadmap branch (replaces Steps 2-7):**
 
 1. `mkdir -p docs/foundation/` (idempotent — no error if it exists).
-2. **Collision check** for `docs/foundation/roadmap.md`:
+2. **Collision check** for `docs/roadmap.md`:
 
    AskUserQuestion (only if file exists):
-   - question: "docs/foundation/roadmap.md already exists. How to proceed?"
+   - question: "docs/roadmap.md already exists. How to proceed?"
      header: "Roadmap exists"
      options:
      - label: "Save as roadmap-v2.md sibling (Recommended)"
@@ -169,7 +169,7 @@ On "Project roadmap": proceed with the roadmap branch below, then STOP after Ste
 
 3. Write the plan content verbatim. If it has no top-level heading, prepend `# Roadmap\n\n`.
 
-4. **Skip ROADMAP.md regeneration** — `docs/work/ROADMAP.md` is a derived rollup of in-flight initiatives; the new top-down roadmap doesn't change that view. The two files coexist by design (see `references/roadmap-shape.md` § "Two ROADMAP files exist on purpose").
+4. **Skip STATUS.md regeneration** — `docs/work/STATUS.md` is a derived rollup of in-flight initiatives; the new top-down roadmap doesn't change that view. The two files coexist by design (see `references/roadmap-shape.md` § "Two artifacts, two questions").
 
 5. **Do NOT offer `/atomize`.** A roadmap is not a change-set; its slices become individual `/save-plan` invocations later (each one IS a change-set and IS atomizable).
 
@@ -180,7 +180,7 @@ On "Project roadmap": proceed with the roadmap branch below, then STOP after Ste
      ROADMAP SAVED
    ═══════════════════════════════════════════════════════════
 
-     Path:    docs/foundation/roadmap.md  (<line-count> lines)
+     Path:    docs/roadmap.md  (<line-count> lines)
      Lines:   <count>
 
      Next:
@@ -294,21 +294,21 @@ Print:
 Plan saved to docs/work/<NNN>-<slug>/plan.md (<line-count> lines)
 ```
 
-### Step 5.5: Regenerate docs/work/ROADMAP.md
+### Step 5.5: Regenerate docs/work/STATUS.md
 
-A new initiative folder just landed under `docs/work/`. Refresh the roadmap overview so it shows the new entry:
+A new initiative folder just landed under `docs/work/`. Refresh the status overview so it shows the new entry:
 
 ```bash
-bash ~/.claude/scripts/regenerate-roadmap.sh
+bash ~/.claude/scripts/regenerate-status.sh
 ```
 
-(If `~/.claude/scripts/regenerate-roadmap.sh` is missing — user hasn't installed ai-devkit's scripts layer — print a soft warning and continue. The roadmap is a derived artifact; absence is not fatal.)
+(If `~/.claude/scripts/regenerate-status.sh` is missing — user hasn't installed ai-devkit's scripts layer — print a soft warning and continue. STATUS.md is a derived artifact; absence is not fatal.)
 
 The script:
 
 - Scans every `docs/work/<NNN>-<slug>/` folder.
 - Reads `plan.md` and `T-*.md` frontmatter to categorise each initiative as Active / Backlog / Done / Obsoleted.
-- Rewrites `docs/work/ROADMAP.md` with tables per category, mtimes, and a classification legend.
+- Rewrites `docs/work/STATUS.md` with tables per category, mtimes, and a classification legend.
 
 After the new initiative is written (Step 5), it will appear in **Backlog** (no T-*.md yet). Once `/atomize` runs and `/implement` starts moving tasks, the next regeneration will promote it to Active.
 
@@ -368,9 +368,9 @@ STOP.
 
 8. **No reference scanning.** This skill does NOT scan `docs/reference/`. If reference citations belong in the plan, they were inserted upstream by `/discover` or `/research` (as `> Ref: docs/reference/<file>` blockquotes) and are preserved verbatim in `plan.md`. `/atomize` reads the plan and picks up those citations directly.
 
-9. **Roadmap-shape detection is a recommendation, not a verdict.** Step 1.5 asks the user to confirm classification — never auto-routes to `docs/foundation/roadmap.md` without consent. The heuristic catches obvious roadmaps; the user knows their intent. When in doubt, falling through to the normal initiative path is the safe default (a roadmap-shaped doc inside `docs/work/<NNN>-<slug>/plan.md` is harmless; the reverse is not).
+9. **Roadmap-shape detection is a recommendation, not a verdict.** Step 1.5 asks the user to confirm classification — never auto-routes to `docs/roadmap.md` without consent. The heuristic catches obvious roadmaps; the user knows their intent. When in doubt, falling through to the normal initiative path is the safe default (a roadmap-shaped doc inside `docs/work/<NNN>-<slug>/plan.md` is harmless; the reverse is not).
 
-10. **`docs/foundation/roadmap.md` is edited in place, never atomized.** It lives once per project as a top-down sequencing artifact. Its slices each become their own `/save-plan` invocations later — that's the right granularity for `/atomize` to chew on. See `references/roadmap-shape.md`.
+10. **`docs/roadmap.md` is edited in place, never atomized.** It lives once per project as a top-down sequencing artifact. Its slices each become their own `/save-plan` invocations later — that's the right granularity for `/atomize` to chew on. See `references/roadmap-shape.md`.
 
 ## Notes
 

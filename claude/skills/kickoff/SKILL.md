@@ -123,7 +123,7 @@ Operational specs and vendor-specific data. Examples:
 These are factual reference data — not decisions, not plans. Update when the underlying source changes.
 ```
 
-### Step 5: Scaffold `docs/work/` + `README.md` + initial `ROADMAP.md`
+### Step 5: Scaffold `docs/work/` + `README.md` + initial `STATUS.md`
 
 If missing, create. README content:
 
@@ -132,7 +132,7 @@ If missing, create. README content:
 
 In-flight initiatives. One folder per initiative, named `NNN-<slug>/` where `NNN` is a zero-padded sequential number and `<slug>` is a 3-5 word descriptor.
 
-`ROADMAP.md` (sibling to this README) is an auto-generated cross-initiative overview. It is rewritten by `/save-plan`, `/atomize`, and `/implement` after each state change. Do not edit by hand — change `plan.md` / `T-*.md` frontmatter and the next skill invocation will refresh the roadmap.
+`STATUS.md` (sibling to this README) is an auto-generated cross-initiative overview ("where are we now"). It is rewritten by `/save-plan`, `/atomize`, and `/implement` after each state change. Do not edit by hand — change `plan.md` / `T-*.md` frontmatter and the next skill invocation will refresh it. Top-down product sequencing (foundations + slices, "where are we going") lives separately at `docs/roadmap.md`, hand-edited.
 
 ## Layout per initiative
 
@@ -160,13 +160,13 @@ docs/work/004-observability-otel/
 4. When the plan changes, edit `plan.md`, then re-run `/atomize <folder>` — it will reconcile: propose new tasks for new requirements, mark removed requirements as obsolete, suggest follow-ups for changes to already-done work.
 ```
 
-After writing the README, also seed `docs/work/ROADMAP.md` by calling the regenerator (it writes a placeholder when the folder has no initiatives yet):
+After writing the README, also seed `docs/work/STATUS.md` by calling the regenerator (it writes a placeholder when the folder has no initiatives yet):
 
 ```bash
-bash ~/.claude/scripts/regenerate-roadmap.sh
+bash ~/.claude/scripts/regenerate-status.sh
 ```
 
-If the regenerator script is absent (older ai-devkit install without scripts layer), skip silently — `/save-plan` will create the ROADMAP on the first initiative.
+If the regenerator script is absent (older ai-devkit install without scripts layer), skip silently — `/save-plan` will create STATUS.md on the first initiative.
 
 ### Step 6: Print summary
 
@@ -182,7 +182,7 @@ docs/reference/                  [created|present]
 docs/reference/README.md         [created|present]
 docs/work/                       [created|present]
 docs/work/README.md              [created|present]
-docs/work/ROADMAP.md             [created|present]
+docs/work/STATUS.md              [created|present]
 ```
 
 Then a one-paragraph guide:

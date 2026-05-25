@@ -2,28 +2,34 @@
 set -euo pipefail
 
 # ============================================================================
-# regenerate-roadmap.sh — Rebuild docs/work/ROADMAP.md from current state
+# regenerate-status.sh — Rebuild docs/work/STATUS.md from current state
 #
 # Scans docs/work/<NNN>-<slug>/ folders, reads plan.md frontmatter (if any)
 # and T-*.md task statuses, and emits a categorised overview at
-# docs/work/ROADMAP.md.
+# docs/work/STATUS.md.
 #
-# Designed to be called from /save-plan, /atomize, /implement after they
-# mutate docs/work/. Pure bash (POSIX-ish + GNU find/sort/awk on macOS Linux),
-# no Python or yq dependency.
+# This is the *bottom-up* derived view: "where are we now" — what's in
+# flight, what's backlog, what shipped, what's obsoleted. Distinct from
+# docs/roadmap.md (top-down planning artifact, hand-edited) — see
+# claude/skills/save-plan/references/roadmap-shape.md for the two-file
+# rationale.
+#
+# Designed to be called from /save-plan, /atomize, /implement, /kickoff
+# after they mutate docs/work/. Pure bash (POSIX-ish + GNU find/sort/awk
+# on macOS and Linux), no Python or yq dependency.
 #
 # Usage:
-#   bash regenerate-roadmap.sh           # operate on $PWD
-#   bash regenerate-roadmap.sh /path     # operate on /path
+#   bash regenerate-status.sh           # operate on $PWD
+#   bash regenerate-status.sh /path     # operate on /path
 # ============================================================================
 
 ROOT="${1:-$PWD}"
 WORK="$ROOT/docs/work"
-ROADMAP="$WORK/ROADMAP.md"
+STATUS_FILE="$WORK/STATUS.md"
 TODAY="$(date +%Y-%m-%d)"
 
 if [ ! -d "$WORK" ]; then
-    echo "regenerate-roadmap.sh: $WORK does not exist. Run /kickoff first." >&2
+    echo "regenerate-status.sh: $WORK does not exist. Run /kickoff first." >&2
     exit 1
 fi
 
@@ -82,7 +88,7 @@ folder_updated() {
         if [ -n "$m" ] && { [ -z "$newest" ] || [ "$m" -gt "$newest" ]; }; then
             newest="$m"
         fi
-    done < <(find "$dir" -type f -not -name "ROADMAP.md" -print0 2>/dev/null)
+    done < <(find "$dir" -type f -not -name "STATUS.md" -print0 2>/dev/null)
     _epoch_to_date "$newest"
 }
 
@@ -217,13 +223,14 @@ render_section() {
 }
 
 # ----------------------------------------------------------------------------
-# Write ROADMAP.md
+# Write STATUS.md
 # ----------------------------------------------------------------------------
 
 {
-    printf '# Roadmap\n\n'
+    printf '# Initiative status\n\n'
     printf '> Auto-generated from `docs/work/*/`. Last updated: %s.\n' "$TODAY"
-    printf '> Maintained by `/save-plan`, `/atomize`, `/implement`. Manual edits are overwritten on the next run — to influence the table, change `plan.md` `status:` or task `T-*.md` `status:` frontmatter.\n\n'
+    printf '> Maintained by `/save-plan`, `/atomize`, `/implement`. Manual edits are overwritten on the next run — to influence the table, change `plan.md` `status:` or task `T-*.md` `status:` frontmatter.\n'
+    printf '> Top-down product sequencing (foundations + slices) lives at `docs/roadmap.md`, hand-edited.\n\n'
 
     if [ -z "$(printf '%s' "$ROWS" | tr -d '[:space:]')" ]; then
         printf '_No initiatives yet. Run `/save-plan` to add the first one._\n'
@@ -241,6 +248,6 @@ render_section() {
         printf '%s\n' '- **Done** — every `T-*.md` is `done` or `obsolete`, with at least one `done`. Also when `plan.md` frontmatter has `status: done`.'
         printf '%s\n' '- **Obsoleted** — `plan.md` frontmatter has `status: obsolete`, or every `T-*.md` is `obsolete`.'
     fi
-} > "$ROADMAP"
+} > "$STATUS_FILE"
 
-echo "regenerate-roadmap.sh: wrote $ROADMAP"
+echo "regenerate-status.sh: wrote $STATUS_FILE"

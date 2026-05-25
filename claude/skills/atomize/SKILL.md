@@ -184,17 +184,17 @@ Generate `<target-folder>/index.md` per the schema reference. All tasks land in 
 
 Add a `## Verification log` entry recording the initial creation date.
 
-### Step 4.5: Regenerate docs/work/ROADMAP.md
+### Step 4.5: Regenerate docs/work/STATUS.md
 
-Tasks just landed in this initiative — refresh the cross-initiative roadmap:
+Tasks just landed in this initiative — refresh the cross-initiative status board:
 
 ```bash
-bash ~/.claude/scripts/regenerate-roadmap.sh
+bash ~/.claude/scripts/regenerate-status.sh
 ```
 
-The script reads every `docs/work/<NNN>-<slug>/` and rewrites `docs/work/ROADMAP.md` with categorised tables (Active / Backlog / Done / Obsoleted). After this initial atomization the initiative typically stays in Backlog (all tasks `pending`) — it will move to Active when `/implement` flips the first task to `in-progress` or `done`.
+The script reads every `docs/work/<NNN>-<slug>/` and rewrites `docs/work/STATUS.md` with categorised tables (Active / Backlog / Done / Obsoleted). After this initial atomization the initiative typically stays in Backlog (all tasks `pending`) — it will move to Active when `/implement` flips the first task to `in-progress` or `done`.
 
-If `~/.claude/scripts/regenerate-roadmap.sh` is missing, print a soft warning and continue — the roadmap is a derived artifact, not a hard dependency.
+If `~/.claude/scripts/regenerate-status.sh` is missing, print a soft warning and continue — STATUS.md is a derived artifact, not a hard dependency.
 
 ### Step 5: Hand off
 
@@ -378,15 +378,15 @@ Append a new `## Verification log` entry recording this reconciliation run:
 
 Preserve prior `## Verification log` entries — this is an append-only audit trail.
 
-### Step 15.5: Regenerate docs/work/ROADMAP.md
+### Step 15.5: Regenerate docs/work/STATUS.md
 
-Statuses changed (new tasks, obsoletes, follow-ups) — refresh the cross-initiative roadmap:
+Statuses changed (new tasks, obsoletes, follow-ups) — refresh the cross-initiative status board:
 
 ```bash
-bash ~/.claude/scripts/regenerate-roadmap.sh
+bash ~/.claude/scripts/regenerate-status.sh
 ```
 
-Same idempotent regeneration as Step 4.5 — rewrites `docs/work/ROADMAP.md` from current `plan.md` + `T-*.md` frontmatter across all folders. Newly-obsoleted initiatives may flip to the Obsoleted section; reconciled initiatives may move between Active / Backlog / Done based on the new task mix.
+Same idempotent regeneration as Step 4.5 — rewrites `docs/work/STATUS.md` from current `plan.md` + `T-*.md` frontmatter across all folders. Newly-obsoleted initiatives may flip to the Obsoleted section; reconciled initiatives may move between Active / Backlog / Done based on the new task mix.
 
 ### Step 16: Hand off
 
