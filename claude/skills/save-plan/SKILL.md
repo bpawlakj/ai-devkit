@@ -130,7 +130,17 @@ See `references/roadmap-shape.md` for the full contract (when to use each shape,
 
 Otherwise: initiative-level. Skip to Step 2 silently.
 
-**On roadmap-shape match**: ask one question to confirm classification:
+**On roadmap-shape match**: print a brief tip pointing at the framing questions (helps the user retro-check the plan content they're about to land — and serves as prompt for re-iterating with sharper framing if needed):
+
+```
+💡 Heads up — top-down roadmaps benefit from three framing answers
+   in your head: main_goal (sequencing axis), north_star (smallest
+   working flow), top_blocker (what to park aggressively). See
+   `references/roadmap-shape.md` § "Framing questions" if you want
+   to retro-check the plan before saving.
+```
+
+Then ask one question to confirm classification:
 
 AskUserQuestion:
 - question: "This plan looks like a top-down roadmap (foundations + slices sequencing). Save as project roadmap or as a regular initiative plan?"

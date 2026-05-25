@@ -12,6 +12,42 @@ A "roadmap" plan is a **top-down sequencing artifact** that lives once per proje
 
 If you're already past that point and you're planning a single change-set, write an initiative-level plan and let `/save-plan` land it under `docs/work/<NNN>-<slug>/` as usual.
 
+## Framing questions to consider before writing
+
+A roadmap that doesn't answer these three questions will sequence slices by gut feel — and that's how foundations get planned with nothing to unlock, slice priorities flip on every weekly review, and "blocked" turns into a permanent category. Sit with these for two minutes before invoking `/plan` to draft the roadmap. They don't go into the document itself; they live in your head while you write it.
+
+### Q1 — `main_goal`: what dimension drives sequencing?
+
+When two slices look equally valuable, which axis breaks the tie?
+
+- **Time-to-launch** — ship-anything-as-fast-as-possible. Scope cuts aggressive; anything non-critical parks.
+- **Market feedback** — get-real-users-on-it. Slices that surface usage signal (retention, churn, analytics) come earlier.
+- **Quality / polish** — get-it-right. Error-rate reduction, edge-case coverage, UX hardening come earlier.
+- **Availability / reliability** — get-it-stable. Infra, monitoring, backups, error handling come earlier.
+- **Learning** — find-out-if-the-bet-works. Slices that test the riskiest product assumption come first.
+
+There's no wrong answer; there is a wrong answer of *not having one* and letting the sequence drift across weekly reviews.
+
+### Q2 — `north_star`: what's the smallest working flow that proves the product thesis?
+
+Pick the user story whose successful completion would most convince a skeptic that the product is worth building. That story dictates which slice is S-01.
+
+The north star isn't "MVP" (too broad). It's a specific end-to-end interaction — one user, one task, completed successfully. Everything in the roadmap before it is foundation; everything after it is expansion.
+
+### Q3 — `top_blocker`: what's the most likely reason this project stalls?
+
+Honest answer here changes which slices get parked aggressively, and what shows up in `## Open Roadmap Questions` vs in `## Slices` with `status: blocked`:
+
+- **Decisions** — too many open questions to commit. Surface them as `## Open Roadmap Questions`; mark dependent slices `blocked` until resolved.
+- **Time** — limited capacity. Park anything not on the north-star path; foundations that don't unlock S-01..S-03 wait.
+- **Availability** — depending on someone else (designer, stakeholder, external API access). Isolate work that can proceed without them; mark dependent slices `blocked: on <person/thing>`.
+- **External factors** — vendor approval, legal review, hardware delivery. Park dependent slices; surface the dependency as a roadmap-level open question.
+- **Knowledge** — uncertain how to do something. Add a foundation labelled "spike: investigate <X>" before slices that depend on the knowledge.
+- **Motivation** — risk of losing interest. Front-load the most visible wins (slices that produce something demoable) over correctness work.
+- **None / unsure** — fine, but revisit this question after the first slice ships.
+
+These three answers determine which slice is `ready` vs `blocked`, which foundation is `Unlocks: S-01` vs `Unlocks: nothing` (the latter being a code smell — see Rules § 2), and which open question is parking-lot vs hard blocker.
+
 ## Detection heuristic (what `/save-plan` looks for)
 
 A plan is treated as roadmap-shape if **any** of these match:
