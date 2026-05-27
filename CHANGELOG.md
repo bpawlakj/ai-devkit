@@ -19,6 +19,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 - **`update.sh`** — folded into `setup.sh`. Anyone who scripted `./update.sh` should switch to `./setup.sh` (same flags: `--check`, `--claude`, `--copilot`, `--permissions`). Rationale: two entry points with overlapping logic was clutter — install and update are the same operation against a different starting state.
+- **`/go-build`, `/go-review`, `/go-test` slash commands + `go-build-resolver`, `go-reviewer` agents** (introduced in v1.6.x as part of Go language support; ~404 lines total). They were the only language-specific entries in an otherwise language-agnostic command/agent layer, and every responsibility they covered is already handled generically: `build-resolver` agent has a Go section out of the box (multi-language by design), `/code-review` (Claude Code built-in) + `security-reviewer` agent cover the review workflow, `/implement` skill runs the TDD loop with auto-detected runners from `go.mod` / `package.json` / `pyproject.toml` / etc., and `rules/go.md` auto-activates on `.go` edits to inject table-driven testing + race detection + `context.Context` propagation guidance without an explicit slash command. Rules stay language-specific (idioms differ), commands return to language-agnostic — consistent with how skills are already structured. `goimports`/`gofmt` PostToolUse hook stays (formatter is a separate concern). Anyone scripted on the removed names should switch to the generic equivalents.
 
 ## [1.8.1] - 2026-05-24
 

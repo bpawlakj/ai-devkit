@@ -71,6 +71,20 @@ Why a script and not a slash command: per-project permissions are environment co
 
 ## What's Inside
 
+### Language support — where the per-language knowledge lives
+
+ai-devkit splits language-specific knowledge from workflow tooling on purpose:
+
+| Layer | Per-language? | Why |
+|---|---|---|
+| **Rules** (`~/.claude/rules/*.md`) | **Yes** — `go.md`, `java.md`, `python.md`, `typescript.md`, … | Idioms differ per language (Go error wrapping, Python type hints, TS `unknown` over `any`). Auto-active when matching files are edited. |
+| **Hooks** (formatters) | **Yes** — `gofmt`/`goimports`, `ruff`, `prettier`, `php-cs-fixer`, `swiftformat`, `google-java-format` | Formatters are language-specific by definition. |
+| **Commands / Agents / Skills** | **No** — `build-resolver`, `security-reviewer`, `/implement`, `/atomize`, … | Workflow shape is the same across languages. Runner / build tool / test command auto-detected from `package.json` / `pyproject.toml` / `go.mod` / `pom.xml` / `Cargo.toml` / `composer.json` / `Package.swift` / etc. |
+
+Practical consequence: there is no `/go-build` or `/python-test` slash command. To get the same outcome, edit a `.go` file (Rules auto-activate Go idioms), invoke `/implement` (auto-detects `go test` via `go.mod`), or invoke `build-resolver` agent (has a Go section in its multi-language body). Same for any other language with a Rule and a lockfile.
+
+---
+
 ### Rules — Coding Standards (11 files)
 
 Auto-activate based on file type. Enforce language/framework best practices without manual setup.
@@ -91,7 +105,7 @@ Auto-activate based on file type. Enforce language/framework best practices with
 
 ---
 
-### Commands — Slash Commands (10 files)
+### Commands — Slash Commands (7 files)
 
 Type these directly in Claude Code. For Copilot CLI, cloud commands are available as agents (`@aws`, `@k8s`).
 
@@ -260,18 +274,6 @@ helm list -A                  # ✅ allowed
 
 **Forbidden on production (even with confirmation):** `rds delete-db-instance`, `dynamodb delete-table`, `ec2 terminate-instances`, `cloudformation delete-stack`, `s3 rb`, `kubectl delete namespace/deployment/statefulset`, `kubectl scale --replicas=0`, `helm uninstall`.
 
-#### `/go-build` — Go Build and Fix
-
-Invokes the **go-build-resolver** agent to incrementally fix Go build errors. Runs `go build`, `go vet`, `staticcheck`, `golangci-lint`. Fixes one error at a time, verifying after each change. Stops after 3 failed attempts and escalates.
-
-#### `/go-review` — Go Code Review
-
-Invokes the **go-reviewer** agent for comprehensive Go-specific code review. Checks for race conditions, goroutine leaks, missing error wrapping, SQL injection, and non-idiomatic patterns. Categorizes issues by severity (CRITICAL/HIGH/MEDIUM) and blocks merge on critical findings.
-
-#### `/go-test` — Go TDD Workflow
-
-Enforces test-driven development for Go code: write table-driven tests first (RED), implement minimal code (GREEN), refactor while keeping tests green. Verifies 80%+ coverage with `go test -cover`.
-
 #### `/ship` — Release Flow
 
 Automates the full release cycle:
@@ -318,8 +320,6 @@ Focused agents that can be invoked for specific tasks.
 | security-reviewer | Auto-available as subagent | `@security-reviewer` |
 | build-resolver | Auto-available as subagent | `@build-resolver` |
 | performance-analyzer | Auto-available as subagent | `@performance-analyzer` |
-| go-build-resolver | Auto-available as subagent (or via `/go-build`) | — |
-| go-reviewer | Auto-available as subagent (or via `/go-review`) | — |
 | aws | Via `/aws` slash command (hook-driven) | `@aws` |
 | k8s | Via `/k8s` slash command (hook-driven) | `@k8s` |
 
@@ -636,8 +636,8 @@ ai-devkit/
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
 │   ├── rules/                       # 11 coding standard files
-│   ├── commands/                    # 10 slash commands
-│   ├── agents/                      # 5 specialized agents
+│   ├── commands/                    # 7 slash commands
+│   ├── agents/                      # 3 specialized agents
 │   ├── skills/                      # 9 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
