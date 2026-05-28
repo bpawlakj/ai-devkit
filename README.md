@@ -353,9 +353,9 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Discovery → Plan → Execute → Audit Workflow (9 skills)
+### Skills — Discovery → Plan → Execute → Audit Workflow (10 skills)
 
-Four complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Four complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules. Plus one browser-bridge skill (`/open-web`) for fetching content that `WebFetch` can't read. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
@@ -368,6 +368,7 @@ Four complementary workflows: (1) idea → product spec, (2) per-decision resear
 | `/implement` | Execute a T-NNN-*.md task, an initiative folder (picks next unblocked pending task), or a standalone `plan.md` through three gates per task: pre-execution (clean tree, branch, dependencies, runner detected, baseline green) → in-execution (red/green/refactor or write-then-test, affected-only test selectors) → post-execution (full suite, commit one task per SHA, frontmatter writeback `status: done` + `commit:` + `completed:`, regenerate `docs/work/STATUS.md`). Closes the loop with `/atomize` reconciliation. Auto-detects runner from `package.json` / `pyproject.toml` / `go.mod` / `pom.xml` / `build.gradle*` / `Cargo.toml` / `composer.json` / `Package.swift` / `mix.exs` / `Gemfile` / `.csproj`. Lesson capture on abandon. Optional `security-reviewer` + `performance-analyzer` Agent invocation before commit. Never `git add -A`, never pushes. | Commits + updated `T-*.md` frontmatter (+ refreshed `STATUS.md`) (+ optional `docs/reference/lessons.md` entry) |
 | `/agents-md` | Author `AGENTS.md` as the canonical project-rules file with a thin `CLAUDE.md` import shim (`@AGENTS.md`) and optional `.github/copilot-instructions.md` shim — Claude Code, Codex, Cursor, Copilot all read the same file. Anti-duplication: inventories `~/.claude/rules/*.md` and refuses to propose rules already auto-active there. Test-of-inclusion gate per candidate rule — every rule must cite a real anchor (`docs/product-spec.md` § …, `docs/architecture/*.md` decision, `docs/reference/lessons.md` entry, incident reference). U-shaped attention layout (Critical → Conventions → Workflow → References). Size budget warning at 200 lines; auto-proposes split into `<area>/AGENTS.md` over 250. | `AGENTS.md` + `CLAUDE.md` shim (+ optional Copilot shim) |
 | `/rule-review` | Audit an existing rules file (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.github/instructions/*.md`) across **7 dimensions**: (1) length vs ~200-line ceiling, (2) embedded code/config blocks, (3) language precision (weak verbs, empty intent), (4) redundancy vs `~/.claude/rules/` auto-active layer with concrete citations, (5) order (critical rules in top third), **(6) cross-tool drift** when AGENTS.md / CLAUDE.md / copilot-instructions co-exist, **(7) dead rules** via codebase grep for the patterns each rule targets. Read-only by default; `--fix` flag applies safe rewrites only (redundancy removal, section reorder, dead-rule marking). Backs up to `<path>.bak-YYYYMMDD-HHMMSS` before any change. | Audit report (+ optional fixed file) |
+| `/open-web` | Drive a real headed browser via the maister Playwright MCP server to load a URL, wait for it to settle, capture an accessibility snapshot + optional screenshot, and surface JS console errors. Bridges the two cases `WebFetch` can't handle: auth-walled pages (course platforms, internal dashboards, private repos — the headed browser inherits whatever session you have open) and JavaScript-rendered SPAs (WebFetch sees an empty HTML shell before JS runs). Default-leaves-tab-open so cookies/session persist across calls; `--close` to clean up, `--no-screenshot` to skip the PNG, `--timeout 15s` to override the 5s wait. Does NOT silently fall back to `WebFetch` if Playwright is unreachable — surfaces the problem instead. Does NOT auto-click through login forms. | Page snapshot + screenshot + console log |
 
 **Workspace layout (`/kickoff` creates):**
 
@@ -638,7 +639,7 @@ ai-devkit/
 │   ├── rules/                       # 11 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
-│   ├── skills/                      # 9 skills (subfolders + references)
+│   ├── skills/                      # 10 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
@@ -657,9 +658,10 @@ ai-devkit/
 │   │   ├── agents-md/               #   /agents-md — author AGENTS.md with anchored content
 │   │   │   ├── SKILL.md
 │   │   │   └── references/test-of-inclusion.md
-│   │   └── rule-review/             #   /rule-review — audit rules file across 7 dimensions
-│   │       ├── SKILL.md
-│   │       └── references/dimensions.md
+│   │   ├── rule-review/             #   /rule-review — audit rules file across 7 dimensions
+│   │   │   ├── SKILL.md
+│   │   │   └── references/dimensions.md
+│   │   └── open-web/SKILL.md        #   /open-web — Playwright MCP browser bridge (auth-walled / JS-rendered pages)
 │   └── scripts/                     # 10 scripts (wrappers, dashboards, hooks, project init, docs/work rollup)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
