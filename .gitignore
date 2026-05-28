@@ -11,3 +11,6 @@ Thumbs.db
 
 # Generated
 code-review-report.md
+
+# Playwright MCP (server-side artifacts from /open-web)
+.playwright-mcp/

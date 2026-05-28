@@ -12,9 +12,10 @@ description: >
   Trigger phrases: "open this URL", "open in browser", "load page in
   Playwright", "screenshot this page", "what's on this page", "fetch
   rendered content".
-argument-hint: "<url> [--close] [--no-screenshot] [--timeout 15s]"
+argument-hint: "<url...> [--close] [--no-screenshot] [--timeout 15s]"
 allowed-tools:
   - Bash
+  - Agent
   - AskUserQuestion
   - mcp__plugin_maister_playwright__browser_navigate
   - mcp__plugin_maister_playwright__browser_snapshot
@@ -62,14 +63,24 @@ STOP.
 
 Then STOP. Do NOT fall back to WebFetch — that defeats the purpose; the user picked /open-web because they specifically need a real browser.
 
-### Step 1: Resolve URL + flags
+### Step 1: Resolve URL(s) + flags + output dir
 
 Parse arguments:
 
-- **First positional arg** = URL. Required.
+- **Positional args** = one or more URLs. At least one required. Multiple URLs (or a follow-up instruction like "read all lessons in this section") trigger **multi-page mode** — see Step 4b.
 - `--close` — close the browser tab after the report. Default: leave open (preserves session for follow-ups).
 - `--no-screenshot` — skip the screenshot capture. Default: take one.
 - `--timeout <Ns>` — override the default 5s wait for the page to settle. Default: 5s.
+
+**Set the output directory once, up front:**
+
+```bash
+OUT="${TMPDIR:-/tmp}/open-web"
+mkdir -p "$OUT"
+echo "$OUT"
+```
+
+All snapshots and screenshots go here as **absolute paths**. This matters: the Playwright MCP server resolves a bare `filename` relative to its own working directory, which is the current repo — passing `lesson.md` dumps the file into the working tree and pollutes git. Always pass `$OUT/<name>.md`. (Console logs and auto-saved oversized snapshots land in `.playwright-mcp/` under the repo regardless — that directory belongs in `.gitignore`.)
 
 URL validation:
 
@@ -107,9 +118,31 @@ For SPAs that hydrate slowly, this won't always catch the "fully ready" state �
 
 Run in this order (each is a separate MCP call):
 
-1. **`browser_snapshot`** — accessibility tree of the page. This is the canonical form for the agent to reason about content. Always do this.
-2. **`browser_take_screenshot`** — viewport PNG. Skip if `--no-screenshot` was passed.
+1. **`browser_snapshot` with `filename: "$OUT/<slug>.md"`** — accessibility tree of the page, saved to a file rather than returned inline. **Always pass `filename`.** Real pages routinely produce 80–90 KB snapshots that exceed the tool's inline token limit; even when they don't, an inline accessibility tree floods your context with `ref=`/`img`/`button` noise. Saving to a file keeps your context clean and lets you grep for exactly what you need.
+   - Derive `<slug>` from the URL path (e.g. `lessons/3662392` → `lesson-3662392`).
+   - If you forget `filename` and the snapshot is too large, the tool auto-saves it to a `.playwright-mcp/.../tool-results/` path and tells you — that works too, just note the path.
+2. **`browser_take_screenshot` with `filename: "$OUT/<slug>.png"`** — viewport PNG. Skip if `--no-screenshot` was passed.
 3. **`browser_console_messages`** — surface JS errors / warnings. Often explains why a page rendered blank.
+
+**Read the saved snapshot with the right tool for the job:**
+
+- **Targeted lookup** (find headings, links, a specific string): `grep`/`sed` on `$OUT/<slug>.md` directly. To strip accessibility noise into readable prose:
+  ```bash
+  grep -vE '^\s*- (img|button|link|generic|/url|contentinfo)' "$OUT/<slug>.md" \
+    | sed -E 's/\[ref=[^]]+\]//g; s/\[cursor=pointer\]//g'
+  ```
+- **Full read for summary** (one page): read the file in chunks, or hand it to a single subagent.
+
+### Step 4b: Multi-page mode (when the user asked for several pages or a whole section)
+
+The single-URL guardrail does NOT apply when the user explicitly asks for multiple pages ("read all lessons in this section", or several URLs passed). In that case:
+
+1. From the first page's snapshot, extract the sibling URLs that define the set (e.g. the section's lesson links from the nav sidebar — `grep -nE "lessons/[0-9]+" "$OUT/<slug>.md"`). Print the resolved list so the user sees the scope before you fan out.
+2. **Navigate sequentially** (one shared browser session — parallel navigation would collide), saving each page's snapshot to its own `$OUT/<slug-N>.md`. Wait between navigate and snapshot.
+3. **Fan out the reading**: once all snapshots are on disk, spawn one `Agent` (general-purpose) per file IN A SINGLE MESSAGE so they run concurrently. Give each the absolute file path, tell it to read the file fully in chunks, and be explicit about the structured output you want back (summary + verbatim key quotes). This keeps the bulky snapshots out of your main context — you only receive the syntheses.
+4. Synthesize the subagent results into one consolidated answer.
+
+This is the pattern that makes "read the whole section" cheap: navigate is serial (shared browser), but reading is parallel (independent files).
 
 ### Step 5: Report
 
@@ -152,7 +185,9 @@ STOP after the report (or after close).
 
 2. **Don't auto-click through login forms.** If the page is an auth wall, STOP and tell the user to log in. Automated credential typing belongs in a different tool, not a "open this URL" skill.
 
-3. **Don't navigate sub-links automatically.** `/open-web` opens one URL. For multi-step flows (click here, then there, then screenshot), the user makes those calls explicitly via `browser_click` + `browser_navigate` in the same session.
+3. **Don't navigate sub-links unless the set was requested.** A single-URL invocation opens exactly that one URL — no wandering into discovered links. The exception is explicit multi-page intent ("read all lessons in this section", several URLs passed): then Step 4b applies and you navigate the *enumerated set* sequentially. You still don't follow links beyond that set. For arbitrary multi-step flows (click here, then there), the user drives `browser_click` + `browser_navigate` explicitly.
+
+6. **Never write capture files into the working tree.** Snapshots and screenshots go to `$OUT` (`${TMPDIR:-/tmp}/open-web`) as absolute paths. A bare `filename` resolves against the repo and pollutes git — always prefix `$OUT/`. Clean up `$OUT` when done if the files were one-shot.
 
 4. **Don't close the tab unless asked.** Headed browser session is expensive to recreate (re-login, re-warm caches). Default-leave-open is the cooperative behavior.
 
@@ -163,3 +198,5 @@ STOP after the report (or after close).
 - The MCP server runs headed by default in the maister config — that's what makes the auth-inherited workflow work. For headless mode, configure the server differently (out of scope for this skill).
 - This skill exists because `WebFetch` returns server-rendered HTML only. Modern web apps render most content client-side; for them, `WebFetch` reads an empty shell. `/open-web` is the escape hatch for that class of page, not a replacement for `WebFetch` on the easy cases.
 - If you want to read the same URL repeatedly during a session (debugging an SPA), the open-tab + re-snapshot loop is much cheaper than re-navigating each time. Pass `--close` only at the end.
+- The MCP server writes its own artifacts (console logs, auto-saved oversized snapshots) into a `.playwright-mcp/` directory under the current working dir. That's the server's behavior, not something this skill controls — add `.playwright-mcp/` to the project `.gitignore` so it never gets committed.
+- Auth-walled pages: the headed browser is a *separate* session from your everyday browser — it does NOT automatically inherit your normal cookies. On first hit of a login wall, the skill STOPs and asks you to log in *in the Playwright window it opened*; once you do, the session persists in that tab for the rest of the run (leave it open — don't `--close`).
