@@ -49,4 +49,4 @@ If yes → drop. If no → keep, and write the reason next to the rule.
 If the user can't honestly answer yes/no, that itself is a signal: the rule is probably under-specified. Either:
 
 - **Anchor it more concretely** ("we do X because of incident IR-..." vs "we do X"). Then re-ask the test.
-- **Drop and let it surface again** — if the agent really does keep making the mistake, it'll come back into focus via `/lesson` later. Don't over-engineer up front.
+- **Drop and let it surface again** — if the agent really does keep making the mistake, it'll come back into focus next time you append to `docs/reference/lessons.md` or re-run `/rule-review`. Don't over-engineer up front.

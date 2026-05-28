@@ -248,7 +248,7 @@ Print:
 Authored: <path>/AGENTS.md (<N> lines), CLAUDE.md shim, [copilot shim?].
 
 This file is a living artifact. When the agent makes the same mistake twice
-in a row, run /lesson (or append to docs/reference/lessons.md) and bring the
+in a row, append a new entry to docs/reference/lessons.md and bring the
 new rule into AGENTS.md the next time you /rule-review it.
 
 Next step: /rule-review <path>/AGENTS.md
