@@ -353,9 +353,9 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Discovery → Plan → Execute → Audit Workflow (10 skills)
+### Skills — Discovery → Plan → Execute → Audit Workflow (11 skills)
 
-Four complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules. Plus one browser-bridge skill (`/open-web`) for fetching content that `WebFetch` can't read. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Four complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules. Plus two integration skills: `/open-web` (browser bridge for content `WebFetch` can't read) and `/bitbucket-review` (Claude code review for Bitbucket PRs over the REST API). Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
@@ -369,6 +369,7 @@ Four complementary workflows: (1) idea → product spec, (2) per-decision resear
 | `/agents-md` | Author `AGENTS.md` as the canonical project-rules file with a thin `CLAUDE.md` import shim (`@AGENTS.md`) and optional `.github/copilot-instructions.md` shim — Claude Code, Codex, Cursor, Copilot all read the same file. Anti-duplication: inventories `~/.claude/rules/*.md` and refuses to propose rules already auto-active there. Test-of-inclusion gate per candidate rule — every rule must cite a real anchor (`docs/product-spec.md` § …, `docs/architecture/*.md` decision, `docs/reference/lessons.md` entry, incident reference). U-shaped attention layout (Critical → Conventions → Workflow → References). Size budget warning at 200 lines; auto-proposes split into `<area>/AGENTS.md` over 250. | `AGENTS.md` + `CLAUDE.md` shim (+ optional Copilot shim) |
 | `/rule-review` | Audit an existing rules file (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.github/instructions/*.md`) across **7 dimensions**: (1) length vs ~200-line ceiling, (2) embedded code/config blocks, (3) language precision (weak verbs, empty intent), (4) redundancy vs `~/.claude/rules/` auto-active layer with concrete citations, (5) order (critical rules in top third), **(6) cross-tool drift** when AGENTS.md / CLAUDE.md / copilot-instructions co-exist, **(7) dead rules** via codebase grep for the patterns each rule targets. Read-only by default; `--fix` flag applies safe rewrites only (redundancy removal, section reorder, dead-rule marking). Backs up to `<path>.bak-YYYYMMDD-HHMMSS` before any change. | Audit report (+ optional fixed file) |
 | `/open-web` | Drive a real headed browser via the maister Playwright MCP server to load a URL, wait for it to settle, capture an accessibility snapshot + optional screenshot, and surface JS console errors. Bridges the two cases `WebFetch` can't handle: auth-walled pages (course platforms, internal dashboards, private repos — the headed browser inherits whatever session you have open) and JavaScript-rendered SPAs (WebFetch sees an empty HTML shell before JS runs). Default-leaves-tab-open so cookies/session persist across calls; `--close` to clean up, `--no-screenshot` to skip the PNG, `--timeout 15s` to override the 5s wait. Does NOT silently fall back to `WebFetch` if Playwright is unreachable — surfaces the problem instead. Does NOT auto-click through login forms. | Page snapshot + screenshot + console log |
+| `/bitbucket-review` | Automated Claude code review for a Bitbucket Cloud PR, driven by the REST API — the Bitbucket counterpart to `/code-review --comment` (which is GitHub-only). Fetches PR metadata + the unified diff over the API (no local clone needed), runs a structured review (correctness + reuse/simplification/efficiency, optional `--security` pass), prints findings in chat, and **opt-in** posts them back as inline (`--comment`) or summary (`--summary-comment`) comments. A Python stdlib helper (`scripts/bb_review.py`) does the deterministic plumbing — API I/O, the `/diff` 302 redirect, pagination, 429 backoff, and unified-diff line mapping so inline anchors are always valid. Auth via **API token** (App Passwords are disabled 2026-06-09); `BITBUCKET_EMAIL` + `BITBUCKET_API_TOKEN`. Posting defaults to OFF so a run never silently writes to a shared PR. `--repo <path>` gives reviewers full-file context the raw diff lacks. | Findings in chat (+ optional PR comments) |
 
 **Workspace layout (`/kickoff` creates):**
 
@@ -455,7 +456,7 @@ This is environment configuration — it has to exist before the agent runs (see
 - **Evidence-cited findings** (`/rule-review`) — each verdict prints line numbers, file paths, grep results, or contradicting siblings. No vague "this rule is weak" — every finding is reproducible.
 - **Schema as contract** — `claude/skills/discover/references/product-spec-schema.md` (PRD shape) and `claude/skills/atomize/references/task-schema.md` (task + index shape) are single sources of truth. Skills re-read them on every invocation and re-validate before disk writes.
 
-**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `kickoff.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`, `implement.md`, `agents-md.md`, `rule-review.md`.
+**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `kickoff.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`, `implement.md`, `agents-md.md`, `rule-review.md`, `bitbucket-review.md`.
 
 ---
 
@@ -585,7 +586,7 @@ brew install helm                    # Helm (for /k8s helm commands)
 
 ## Tests
 
-75 unit tests using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
+81 unit tests using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
 
 ```bash
 # Install bats
@@ -609,6 +610,7 @@ bats tests/ --verbose-run
 | `k8s-dashboard.bats` | 12 | K8s dashboard, cluster info, namespace display, profile filtering |
 | `prompt-hook.bats` | 8 | Command routing (`/aws`, `/k8s`, `/cloud-setup`), not-configured fallback |
 | `setup.bats` | 10 | Flag parsing, JSON merge, file integrity, settings validation |
+| `bitbucket-review.bats` | 6 | Skill structure, helper compiles, credential guard, env-file fallback, unified-diff line mapping |
 
 ## Uninstall
 
@@ -639,7 +641,7 @@ ai-devkit/
 │   ├── rules/                       # 11 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
-│   ├── skills/                      # 10 skills (subfolders + references)
+│   ├── skills/                      # 11 skills (subfolders + references)
 │   │   ├── kickoff/SKILL.md         #   /kickoff — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
@@ -661,7 +663,11 @@ ai-devkit/
 │   │   ├── rule-review/             #   /rule-review — audit rules file across 7 dimensions
 │   │   │   ├── SKILL.md
 │   │   │   └── references/dimensions.md
-│   │   └── open-web/SKILL.md        #   /open-web — Playwright MCP browser bridge (auth-walled / JS-rendered pages)
+│   │   ├── open-web/SKILL.md        #   /open-web — Playwright MCP browser bridge (auth-walled / JS-rendered pages)
+│   │   └── bitbucket-review/        #   /bitbucket-review — Claude code review for Bitbucket PRs via REST API
+│   │       ├── SKILL.md
+│   │       ├── scripts/bb_review.py #     API I/O + unified-diff line mapping (stdlib only)
+│   │       └── references/review-rubric.md + bitbucket-api.md
 │   └── scripts/                     # 10 scripts (wrappers, dashboards, hooks, project init, docs/work rollup)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
@@ -694,5 +700,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 14 prompt templates (copy-paste): ship, retro, changelog, threat-model, init-permissions, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review
+    └── prompts/                     # 15 prompt templates (copy-paste): ship, retro, changelog, threat-model, init-permissions, kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review
 ```
