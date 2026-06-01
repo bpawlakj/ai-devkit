@@ -18,6 +18,7 @@ set -euo pipefail
 #        ./setup.sh --no-pull             # Skip the upstream fetch/pull step
 #        ./setup.sh --permissions [DIR]   # Per-project permission policy in DIR (default cwd)
 #                                         # Extra flags forwarded: --minimal --force --dry-run --yes
+#        ./setup.sh --bitbucket-creds     # Configure /bitbucket-review credentials (prompts; writes ~/.claude/bitbucket-review.env)
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -75,6 +76,50 @@ if [ "${1:-}" = "--permissions" ]; then
     exec bash "$PERMS_SCRIPT" "$@"
 fi
 
+# ----------------------------------------------------------------------------
+# --bitbucket-creds mode: write ~/.claude/bitbucket-review.env and exit.
+# Used by the /bitbucket-review skill. The token is entered at runtime and
+# stored ONLY in this local file (chmod 600) — NEVER committed to the repo.
+# Handled before the main flag switch because it shortcircuits the install.
+# ----------------------------------------------------------------------------
+if [ "${1:-}" = "--bitbucket-creds" ]; then
+    CREDS_FILE="$CLAUDE_DIR/bitbucket-review.env"
+    mkdir -p "$CLAUDE_DIR"
+    header "Configure /bitbucket-review credentials"
+    echo "  Token: Atlassian account > Settings > Security > API tokens"
+    echo "         (scopes: read repository + read & write pull request)."
+    echo "  App Passwords are deprecated (disabled 2026-06-09) — use an API token."
+    echo ""
+    DEFAULT_EMAIL=""
+    if [ -f "$CREDS_FILE" ]; then
+        DEFAULT_EMAIL="$(sed -n 's/^export BITBUCKET_EMAIL="\(.*\)"$/\1/p' "$CREDS_FILE" 2>/dev/null | head -1)"
+    fi
+    if [ -n "$DEFAULT_EMAIL" ]; then
+        read -r -p "  Atlassian account email [$DEFAULT_EMAIL]: " BB_EMAIL
+        BB_EMAIL="${BB_EMAIL:-$DEFAULT_EMAIL}"
+    else
+        read -r -p "  Atlassian account email: " BB_EMAIL
+    fi
+    read -r -s -p "  API token (input hidden): " BB_TOKEN
+    echo ""
+    if [ -z "${BB_EMAIL:-}" ] || [ -z "${BB_TOKEN:-}" ]; then
+        err "Both email and token are required. Aborted."
+        exit 1
+    fi
+    [ -f "$CREDS_FILE" ] && cp "$CREDS_FILE" "$CREDS_FILE.bak-$(date +%Y%m%d-%H%M%S)"
+    ( umask 077; cat > "$CREDS_FILE" <<EOF
+# /bitbucket-review credentials — sourced by the skill. DO NOT commit.
+# Regenerate any time with: ./setup.sh --bitbucket-creds
+export BITBUCKET_EMAIL="$BB_EMAIL"
+export BITBUCKET_API_TOKEN="$BB_TOKEN"
+EOF
+    )
+    chmod 600 "$CREDS_FILE"
+    ok "Wrote $CREDS_FILE (chmod 600)"
+    echo "  The /bitbucket-review skill loads it automatically (no shell-profile edit needed)."
+    exit 0
+fi
+
 SCOPE_PICKED=false
 for arg in "$@"; do
     case "$arg" in
@@ -84,15 +129,16 @@ for arg in "$@"; do
         --check)    CHECK_ONLY=true ;;
         --no-pull)  NO_PULL=true ;;
         -h|--help)
-            echo "Usage: $0 [--claude | --copilot | --all] [--check | --no-pull] [--permissions [DIR]]"
+            echo "Usage: $0 [--claude | --copilot | --all] [--check | --no-pull] [--permissions [DIR]] [--bitbucket-creds]"
             echo ""
-            echo "  --claude        Install Claude Code config only"
-            echo "  --copilot       Install Copilot CLI config only"
-            echo "  --all           Install both (default)"
-            echo "  --check         Show update status (version / changelog diff) and exit"
-            echo "  --no-pull       Skip the upstream fetch/pull step; install from working copy as-is"
-            echo "  --permissions   Write per-project .claude/settings.json in DIR (default cwd)"
-            echo "                  Forwards extra flags: --minimal --force --dry-run --yes"
+            echo "  --claude          Install Claude Code config only"
+            echo "  --copilot         Install Copilot CLI config only"
+            echo "  --all             Install both (default)"
+            echo "  --check           Show update status (version / changelog diff) and exit"
+            echo "  --no-pull         Skip the upstream fetch/pull step; install from working copy as-is"
+            echo "  --permissions     Write per-project .claude/settings.json in DIR (default cwd)"
+            echo "                    Forwards extra flags: --minimal --force --dry-run --yes"
+            echo "  --bitbucket-creds Configure /bitbucket-review credentials (prompts; writes ~/.claude/bitbucket-review.env)"
             exit 0 ;;
         *) echo "Unknown flag: $arg. Use --help for usage."; exit 1 ;;
     esac
@@ -426,7 +472,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
-    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run)"
+    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run, bitbucket-review, ci-setup, repo-map, eval)"
     echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    7 (ruff, java-format, swiftformat, prettier, goimports, php-cs-fixer, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
@@ -438,7 +484,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  17 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run)"
+    echo "    Prompts:  18 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run, eval)"
     echo ""
 fi
 

@@ -355,9 +355,9 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Discovery → Plan → Execute → Test → Audit Workflow (13 skills)
+### Skills — Discovery → Plan → Execute → Test → Audit Workflow (14 skills)
 
-Five complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules, (5) author E2E scenarios → run them. Plus one browser-bridge skill (`/open-web`) for fetching content that `WebFetch` can't read, and an eval harness (`/eval`) that scores AI output against golden tasks to catch regressions when the model or harness changes. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Five complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules, (5) author E2E scenarios → run them. Plus two integration skills — `/open-web` (browser bridge for content `WebFetch` can't read) and `/bitbucket-review` (Claude code review for Bitbucket PRs over the REST API) — and an eval harness (`/eval`) that scores AI output against golden tasks to catch regressions when the model or harness changes. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
@@ -374,6 +374,7 @@ Five complementary workflows: (1) idea → product spec, (2) per-decision resear
 | `/scenario` | Author E2E test scenarios from a `T-NNN` task, initiative, product-spec, or freeform idea, and generate **committed** Playwright tests into `tests/e2e/`. Enumerates **optimistic + pessimistic paths**, presents them as a human-reviewable plan (`tests/e2e/scenarios/<slug>.md`, frontmatter `depends_on: [T-NNN]` + `initiative:` back-links), and only after explicit confirmation generates tagged `.spec.ts` — web via the browser, backend via Playwright's `request` fixture. Optionally grounds web selectors against a live app via the Playwright MCP (role/test-id locators). Assertion oracle = acceptance criteria, never observed output. Does NOT run tests and never auto-heals. Pairs with the auto-active `rules/e2e-testing.md`. | `tests/e2e/scenarios/<slug>.md` + tagged `.spec.ts` (web/api) |
 | `/e2e-run` | Discover and run the scenarios `/scenario` authored, with the right tool per artifact and scoped to what you ask for. Default runner is **Playwright** (`npx playwright test`); dedicated API runners — **Hurl** (`.hurl`), **Schemathesis** (OpenAPI) — are opt-in extensions (`extensions/` mechanism, recorded in `tests/e2e/extensions.md`). Resolves scope from a scenario `.md`, an initiative, a `T-NNN` (via `depends_on`), a path-type tag (`--grep @optimistic`/`@pessimistic`), or a layer. Reports pass/fail per layer + path type with trace artifacts. **Report-only on failure — never regenerates or auto-heals**; never auto-installs a tool. Optional one-line result note to the linked task's `## Notes` (never flips `status`). | Test run + structured report (+ optional task `## Notes` line) |
 | `/eval` | Run a golden-task evaluation harness over AI output to catch quality regressions when the model or harness changes. Reads golden tasks (input + a known `## Expected` outcome) from an `evals/` directory, runs each against its named `target:` (a skill, prompt, agent, or product LLM feature), scores output against the **oracle** (`rubric` via a fresh judge agent / `assert` / `exact`) — never against the implementation's own echo, compares to a git-tracked `baseline.json`, and reports pass/fail per task plus a regression delta. A run fails on any drop vs baseline (`allow_regressions: false`), not just on missing a threshold; the baseline is stamped with model + harness so a drop is attributable to an upgrade. Scaffolds a starter `evals/` on first run. Closes EVAL-07-grade concreteness; pairs with `/ci-setup` for a CI gate. | `evals/` scaffold + run report (+ accepted `baseline.json` on `--accept`) |
+| `/bitbucket-review` | Automated Claude code review for a Bitbucket Cloud PR, driven by the REST API — the Bitbucket counterpart to `/code-review --comment` (which is GitHub-only). Fetches PR metadata + the unified diff over the API (no local clone needed), runs a structured review (correctness + reuse/simplification/efficiency, optional `--security` pass), prints findings in chat, and **opt-in** posts them back as inline (`--comment`) or summary (`--summary-comment`) comments. A Python stdlib helper (`scripts/bb_review.py`) does the deterministic plumbing — API I/O, the `/diff` 302 redirect, pagination, 429 backoff, and unified-diff line mapping so inline anchors are always valid. Auth via **API token** (App Passwords are disabled 2026-06-09); `BITBUCKET_EMAIL` + `BITBUCKET_API_TOKEN`. Posting defaults to OFF so a run never silently writes to a shared PR. `--repo <path>` gives reviewers full-file context the raw diff lacks. | Findings in chat (+ optional PR comments) |
 
 **Workspace layout (`/setup` creates):**
 
@@ -460,7 +461,7 @@ This is environment configuration — it has to exist before the agent runs (see
 - **Evidence-cited findings** (`/rule-review`) — each verdict prints line numbers, file paths, grep results, or contradicting siblings. No vague "this rule is weak" — every finding is reproducible.
 - **Schema as contract** — `claude/skills/discover/references/product-spec-schema.md` (PRD shape) and `claude/skills/atomize/references/task-schema.md` (task + index shape) are single sources of truth. Skills re-read them on every invocation and re-validate before disk writes.
 
-**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `setup.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`, `implement.md`, `agents-md.md`, `rule-review.md`, `scenario.md`, `e2e-run.md`.
+**Copilot CLI:** prompts in `copilot/prompts/` — copy-paste templates for `setup.md`, `discover.md`, `product-spec.md`, `research.md`, `save-plan.md`, `atomize.md`, `implement.md`, `agents-md.md`, `rule-review.md`, `scenario.md`, `e2e-run.md`, `bitbucket-review.md`.
 
 ---
 
@@ -590,7 +591,7 @@ brew install helm                    # Helm (for /k8s helm commands)
 
 ## Tests
 
-75 unit tests using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
+161 unit tests using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
 
 ```bash
 # Install bats
@@ -614,6 +615,12 @@ bats tests/ --verbose-run
 | `k8s-dashboard.bats` | 12 | K8s dashboard, cluster info, namespace display, profile filtering |
 | `prompt-hook.bats` | 8 | Command routing (`/aws`, `/k8s`, `/cloud-setup`), not-configured fallback |
 | `setup.bats` | 10 | Flag parsing, JSON merge, file integrity, settings validation |
+| `cloud-guard.bats` | 52 | Safety guard hook: read-only cloud commands allowed, destructive ones blocked |
+| `scenario.bats` | 7 | Skill structure, scenario schema, MCP grounding tier, optimistic/pessimistic paths |
+| `e2e-run.bats` | 9 | Skill structure, runner detection, no-live-browser guard, Hurl/Schemathesis extensions |
+| `eval.bats` | 7 | Skill structure, golden-task/baseline/thresholds schema, oracle rule |
+| `decision-log.bats` | 5 | Locked D-NNN schema, `/setup` scaffolding, living-log rules |
+| `bitbucket-review.bats` | 6 | Skill structure, helper compiles, credential guard, env-file fallback, unified-diff line mapping |
 
 ## Uninstall
 
@@ -644,7 +651,7 @@ ai-devkit/
 │   ├── rules/                       # 12 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
-│   ├── skills/                      # 10 skills (subfolders + references)
+│   ├── skills/                      # 14 skills (subfolders + references)
 │   │   ├── setup/SKILL.md         #   /setup — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
@@ -670,10 +677,14 @@ ai-devkit/
 │   │   ├── scenario/                #   /scenario — author E2E scenarios → committed Playwright tests
 │   │   │   ├── SKILL.md
 │   │   │   └── references/scenario-schema.md
-│   │   └── e2e-run/                 #   /e2e-run — run scenarios with the right tool (Playwright; Hurl/Schemathesis opt-in)
+│   │   ├── e2e-run/                 #   /e2e-run — run scenarios with the right tool (Playwright; Hurl/Schemathesis opt-in)
+│   │   │   ├── SKILL.md
+│   │   │   ├── references/runner-detection.md
+│   │   │   └── extensions/          #   api-hurl + api-schemathesis (opt-in API runners)
+│   │   └── bitbucket-review/        #   /bitbucket-review — Claude code review for Bitbucket PRs via REST API
 │   │       ├── SKILL.md
-│   │       ├── references/runner-detection.md
-│   │       └── extensions/          #   api-hurl + api-schemathesis (opt-in API runners)
+│   │       ├── scripts/bb_review.py #     API I/O + unified-diff line mapping (stdlib only)
+│   │       └── references/review-rubric.md + bitbucket-api.md
 │   └── scripts/                     # 10 scripts (wrappers, dashboards, hooks, project init, docs/work rollup)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
@@ -706,5 +717,5 @@ ai-devkit/
     │   └── performance-analyzer.md  #   Performance bottleneck detection
     ├── hooks/                       # hooks.json (per-repo)
     ├── instructions/                # 11 instruction files (per-repo)
-    └── prompts/                     # 17 prompt templates (copy-paste): ship, retro, changelog, threat-model, init-permissions, setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run
+    └── prompts/                     # 18 prompt templates (copy-paste): ship, retro, changelog, threat-model, init-permissions, setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run, eval
 ```
