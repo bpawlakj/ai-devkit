@@ -65,6 +65,7 @@ if (!apiKey) throw new Error("API_KEY not configured");
 - Log detailed errors server-side with proper logging framework
 - Return generic messages to clients — never expose stack traces, internal paths, or SQL errors
 - Map exceptions to safe HTTP status codes at handler boundaries
+- **Never swallow exceptions:** a `catch` that logs and returns a 2xx hides failures from clients and monitoring alike (OWASP 2025 **A10: Mishandling of Exceptional Conditions**). Propagate the error or map it to a non-2xx status — see `node.md` § Error Handling.
 
 ## Dependency Security
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-06-01
+
+### Added
+- **`rules/e2e-testing.md`** — new auto-active rule (12th coding-standard file), gated to `*.e2e.ts`, `*.e2e.tsx`, `e2e/**/*.ts`, `tests/e2e/**`, `playwright/**/*.ts`, `playwright.config.*` — deliberately NOT `*.spec.ts` so it never fires on unit tests (`typescript.md` already owns those). Covers: when a behavior needs E2E vs a unit test (crosses system boundaries / lives only in rendered UI), role-based selectors over CSS, test independence + cleanup, wait-for-state not wait-for-time, `storageState` session reuse (log in once, login/register get their own tests), the **five E2E anti-patterns** as a review checklist, and the two checks that catch a fake-green test — the **control question** ("would this assertion fail if the risk it guards materialized?") and **deliberate breakage** (invert the protected behavior, confirm red, revert — never commit the break). Plus a CLI-over-MCP token note (driving multi-step scenarios = Playwright CLI; the MCP server, e.g. `/open-web`, is for one-shot reads and costs ~4× tokens). Distilled from 10xDevs 3.0 **M3L4** (E2E with Playwright/MCP) — the durable principles only. The `/10x-e2e` orchestrator skill it ships (planner/generator/healer machinery coupled to `/10x-implement` + `/10x-tdd` + `test-plan.md`) is **deliberately not copied**: it duplicates `/implement`'s loop and is exactly the token-heavy ceremony ai-devkit avoids — a ~50-line auto-active rule delivers ~80% of the value at ~5% of the cost.
+
+### Changed
+- **Swallowed-error rule** added to `rules/node.md` § Error Handling (with BAD/GOOD snippet) and cross-linked from `rules/security.md` § Error Messages. A `catch` that logs and returns success (e.g. `console.warn` + `200 {ok:true}` on a failed write) is a production-invisible bug — propagate the error or map it to a non-2xx status. Named after **OWASP 2025 A10: Mishandling of Exceptional Conditions**. From 10xDevs 3.0 **M3L5** (debugging — the swallowed-error worked example).
+- **Oracle-problem guard** added to `rules/typescript.md` § Testing and `skills/implement` Step 4. An assertion's expected value must trace to `## Acceptance` / the spec / requirements — never read off the implementation; a test whose oracle is the code only cements current behavior, bugs included. Assert observable behavior or persisted state (the DB row written), not the function's own return echoed back; confirm the test fails for the right reason (red before the implementation exists, or — for implement-then-verify — break the behavior once, confirm red, revert). Placed in two layers by design: the auto-active rule fires on any TS edit, the `/implement` Step 4 note fires during the TDD loop. From 10xDevs 3.0 **M3L1/M3L2** (test-plan + unit implementation — the oracle problem).
+- README rules table gains the `e2e-testing` row; rules count 11 → 12.
+
 ## [1.9.0] - 2026-05-28
 
 ### Added

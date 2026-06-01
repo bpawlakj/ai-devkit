@@ -71,6 +71,21 @@ class NotFoundError extends AppError {
 
 - Retry with exponential backoff for transient external failures
 - Never expose internal error details in API responses
+- **Never swallow exceptions.** A `catch` that logs and returns success hides the failure from the client, from monitoring, and from your future self — propagate it (re-throw, or return a non-2xx). Logging a failed write with `console.warn` and still returning `200 {ok:true}` is a production-invisible bug (OWASP 2025 **A10: Mishandling of Exceptional Conditions**). Fix order: stop hiding the error first, *then* handle it properly.
+
+```typescript
+// BAD — failure swallowed, caller sees success
+try {
+    await db.update(...);
+} catch (err) {
+    console.warn("update failed", err);
+}
+return res.json({ ok: true }); // lies — the write never happened
+
+// GOOD — failure propagates
+await db.update(...);          // throws on failure
+return res.json({ ok: true }); // only reached on a real success
+```
 
 ## Security
 

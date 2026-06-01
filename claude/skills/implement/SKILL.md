@@ -159,6 +159,7 @@ Branch by task shape:
 
 In both branches:
 - Run only the **affected** test selector when possible (`vitest run path/to/spec`, `pytest path/to/test_x.py::test_y`, `go test ./pkg/...`, etc.). Full-suite run is reserved for Step 6.
+- **The assertion's expected value must come from `## Acceptance` / the spec / requirements — never read off the implementation.** A test whose oracle is the code only cements current behavior, bugs included (the *oracle problem*). Assert observable behavior or persisted state (e.g. the DB row that was written), not the function's own return value echoed back. Confirm the test fails *for the right reason*: red before the implementation exists (test-first), or — for implement-then-verify — break the behavior once, confirm red, then revert (never commit the break).
 - Edit only files listed in `## Scope` or files reasonably implied by them. If a substantial edit lands outside scope, surface it to the user: "This required touching `<file>` not in scope — confirm?"
 
 ### Step 5: Optional review

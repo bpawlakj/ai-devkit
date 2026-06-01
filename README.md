@@ -102,6 +102,7 @@ Auto-activate based on file type. Enforce language/framework best practices with
 | **go** | `*.go`, `go.mod`, `go.sum` | gofmt/goimports, error wrapping (`%w`), functional options, table-driven tests, race detection, `context.Context`, goroutine safety, gosec |
 | **php** | `*.php`, `composer.json` | PSR-12, `strict_types`, typed properties, immutable DTOs, PHPUnit/Pest, PHP-CS-Fixer/Pint, PHPStan/Psalm, prepared statements, CSRF |
 | **swift-ios** | `*.swift`, `Package.swift` | Swift 6 concurrency (`Sendable`, actors), protocol-oriented design, typed throws, Keychain, SwiftFormat, Swift Testing |
+| **e2e-testing** | `*.e2e.ts`, `e2e/**`, `playwright.config.*` | When E2E vs unit, role-based selectors, test independence, wait-for-state, `storageState` reuse, the five anti-patterns, deliberate-breakage verify |
 
 ---
 
@@ -636,7 +637,7 @@ ai-devkit/
 │
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
-│   ├── rules/                       # 11 coding standard files
+│   ├── rules/                       # 12 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
 │   ├── skills/                      # 10 skills (subfolders + references)
