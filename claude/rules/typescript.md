@@ -86,3 +86,4 @@ Never use `console.log` in production code. Use a proper logging library (Winsto
 - **Playwright** for E2E tests
 - Test files: `*.test.ts` or `*.spec.ts`
 - Arrange-Act-Assert pattern
+- The expected value in an assertion must trace to a requirement, not the implementation — a test whose oracle is the code only locks in current behavior, bugs included (*oracle problem*). Confirm it fails when the behavior breaks.
