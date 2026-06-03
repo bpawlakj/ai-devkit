@@ -161,6 +161,7 @@ In both branches:
 - Run only the **affected** test selector when possible (`vitest run path/to/spec`, `pytest path/to/test_x.py::test_y`, `go test ./pkg/...`, etc.). Full-suite run is reserved for Step 6.
 - **The assertion's expected value must come from `## Acceptance` / the spec / requirements — never read off the implementation.** A test whose oracle is the code only cements current behavior, bugs included (the *oracle problem*). Assert observable behavior or persisted state (e.g. the DB row that was written), not the function's own return value echoed back. Confirm the test fails *for the right reason*: red before the implementation exists (test-first), or — for implement-then-verify — break the behavior once, confirm red, then revert (never commit the break).
 - Edit only files listed in `## Scope` or files reasonably implied by them. If a substantial edit lands outside scope, surface it to the user: "This required touching `<file>` not in scope — confirm?"
+- **Modify in place — never fork files.** When a task changes an existing file, edit that file directly. NEVER create sibling copies as a way to "preserve" the original (`UserService_new.ts`, `auth_v2.py`, `Component.modified.tsx`, `routes.bak`, `Copy of X`) — git preserves history; duplicates rot into dead code that confuses every later task. New files are reserved for genuinely new modules named or implied by `## Scope`.
 
 ### Step 5: Optional review
 
@@ -179,9 +180,10 @@ If yes / partial yes: delegate via the `Agent` tool to the relevant subagent(s).
 ### Step 6: Full suite + commit
 
 Before committing:
-1. Run the **full** detected runner once. Must be green.
-2. Show the diff (`git diff --stat` then `git diff` if user wants details).
-3. Compose commit message. Default template:
+1. **Duplicate-file check.** Scan `git status --porcelain` for added/untracked files whose names suggest a forked copy of an existing file (`*_new.*`, `*_v2.*`, `*_modified.*`, `*.bak`, `* copy.*`, `Copy of *`). If any match, STOP — fold the changes back into the original file before committing (see the modify-in-place rule in Step 4).
+2. Run the **full** detected runner once. Must be green.
+3. Show the diff (`git diff --stat` then `git diff` if user wants details).
+4. Compose commit message. Default template:
 
 ```
 <task-id>: <task title from frontmatter>
@@ -191,7 +193,7 @@ Before committing:
 Refs: docs/work/<NNN>-<slug>/T-NNN-<slug>.md
 ```
 
-4. Ask:
+5. Ask:
    - "Commit with this message" (default)
    - "Edit message"
    - "Show full diff first"

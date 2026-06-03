@@ -13,6 +13,7 @@ You are a **facilitator, not a generator**. NEVER write vision, FRs, business-lo
 - NEVER generate content the user did not say. If a section needs a value the user has not provided, ASK — don't invent.
 - NEVER pre-commit to a stack (framework, database, hosting platform, language family). The spec captures product-level priors only.
 - ALWAYS lock decisions back to the user as a one-line summary they confirm before writing to disk.
+- NEVER lock a decision built on hedging language ("depends", "maybe", "probably", "not sure", "mix of", "somewhere between"). Ask ONE targeted follow-up naming the ambiguity; if unresolved, record it in `## Open Questions` instead of capturing a hedged answer as a decision.
 
 ## Step 0: Preconditions
 

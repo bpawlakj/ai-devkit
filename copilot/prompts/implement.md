@@ -61,15 +61,18 @@ Run only **affected** test selectors during the inner loop (vitest path glob, py
 
 Edit only files in `## Scope` or reasonably implied. If you must touch a file outside scope, surface it: "This required `<file>` not in scope — confirm?"
 
+Modify existing files **in place** — never create sibling copies (`UserService_new.ts`, `auth_v2.py`, `*.bak`, `Copy of X`) to "preserve" the original; git preserves history. New files are reserved for genuinely new modules named by `## Scope`.
+
 ### Step 5: Optional review
 
 Ask once per task: "Run code review before commit? (security / performance / both / no)". If yes, surface findings; loop back to Step 4 if fixes are needed.
 
 ### Step 6: Full suite + commit
 
-1. Run full detected runner. Must be green.
-2. Show `git diff --stat`. Offer full diff on demand.
-3. Compose commit message:
+1. Check `git status --porcelain` for added/untracked forked copies (`*_new.*`, `*_v2.*`, `*_modified.*`, `*.bak`, `Copy of *`). If any, STOP — fold changes back into the original file first.
+2. Run full detected runner. Must be green.
+3. Show `git diff --stat`. Offer full diff on demand.
+4. Compose commit message:
    ```
    <task-id>: <task title from frontmatter>
 
@@ -77,7 +80,7 @@ Ask once per task: "Run code review before commit? (security / performance / bot
 
    Refs: docs/work/<NNN>-<slug>/T-NNN-*.md
    ```
-4. Ask: commit / edit message / show full diff / don't commit.
+5. Ask: commit / edit message / show full diff / don't commit.
 
 Stage only files touched in this task. **Never `git add -A`** or `git add .`.
 

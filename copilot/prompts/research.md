@@ -100,6 +100,8 @@ Ask: interview (user provides facts) / investigation (web search + code reading)
 
 Capture verbatim. Don't rephrase.
 
+Before leaving the interview, scan answers for hedging language ("depends", "maybe", "probably", "not sure", "mix of", "somewhere between"). Ask ONE targeted follow-up per flagged answer; if unresolved, route the point to `## Open Questions` — never carry a hedged answer into Findings as a fact.
+
 **Investigation**: in Copilot CLI, do parallel web research via WebSearch / WebFetch (or manual browsing if those aren't available). Fetch:
 - Official docs (GA/beta status, features, pricing, license)
 - Independent reviews / comparisons (search "<topic> vs <alt>")

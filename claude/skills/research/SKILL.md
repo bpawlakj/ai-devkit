@@ -309,6 +309,8 @@ Walk the user through structured questions matching the `type`:
 
 Capture answers verbatim where possible — do NOT rephrase or "improve" the user's words. Treat them as evidence to transcribe into Findings / Alternatives sections.
 
+**Ambiguity analysis (mandatory before leaving interview):** scan the captured answers for hedging language — "depends", "maybe", "probably", "not sure", "mix of", "somewhere between" (or their equivalents in the user's working language). For each flagged answer, ask ONE targeted follow-up that names the ambiguity: "You said the integration cost 'depends' — on what? Which case applies to this project?" If the user cannot resolve it, route the point to `## Open Questions` (in Mixed mode, it also becomes a candidate gap for a focused subagent) — do NOT carry a hedged answer into `## Findings` as if it were a fact.
+
 ### Step 6B: Investigation mode
 
 Spawn 2-4 research subagents via the `Agent` tool. Each gets a focused brief:

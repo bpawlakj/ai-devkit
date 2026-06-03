@@ -312,6 +312,26 @@ ls -dt docs/work/[0-9]*/ 2>/dev/null | head -1
 
 If NONE of the three categories yields any file, print: "No existing artifacts found. Running brownfield mode without inheritance — each phase will elicit baseline + delta." Set `inherited_from: []` in frontmatter and proceed to Discovery pattern.
 
+**Staleness check — verify artifacts still describe the current code:**
+
+Inherited docs are only trustworthy if the codebase has not drifted past them. For each artifact found, compare its last commit date against the codebase's last significant change:
+
+```bash
+# Last commit touching the artifact vs last commit touching code (docs/ excluded)
+git log -1 --format='%cs' -- docs/product-spec.md
+git log -1 --format='%cs' -- . ':(exclude)docs'
+
+# How much code moved since the artifact was last touched
+git log --oneline --since="<artifact-date>" -- . ':(exclude)docs' | wc -l
+```
+
+Classify each artifact:
+
+- **current** — artifact's last commit is newer than, or close behind, the last code change
+- **possibly stale** — the codebase has moved substantially since the artifact was last touched (many code commits after the artifact's date)
+
+This is a **soft signal, not a gate** — docs routinely lag code without being wrong. Annotate possibly-stale artifacts in the summary table below with `⚠ possibly stale — last updated <date>, <N> code commits since`. The user decides whether the inherited value is still authoritative; if they flag one as outdated, treat that element as not-inheritable (elicit it in its phase like baseline mode). If `git` is unavailable or history is shallow, skip the check silently.
+
 **Extraction — for each artifact found, read FULLY and extract inheritable elements:**
 
 | Element                | Source (priority order)                                              |
@@ -351,6 +371,8 @@ For each element found, capture a one-line summary plus the source path.
 
 ═══════════════════════════════════════════════════════════
 ```
+
+If any artifact was flagged `⚠ possibly stale` by the staleness check, print one line under the table per flagged artifact — "`<path>` was last updated <date>; <N> code commits have landed since. Its inherited values may no longer match the code." — and include the flag in the question below so the user inherits stale content deliberately, not by default.
 
 Then ask:
 
@@ -438,6 +460,7 @@ The pattern is **facilitator stance + decision-point surfacing + recommended-ans
 - **Reference materials are evidence, not authority.** When a selected `docs/reference/` item suggests an answer (e.g., a client brief names FRs, a competitor analysis hints at non-goals), surface it explicitly to the user: "The client brief mentions X — should we keep it, drop it, or restate it differently?" Never silently fold external content into discover-notes as if the user said it. Citation format inside discover-notes: `> Ref: docs/reference/<file> — <one-line claim>.`
 - **Professional tone over startup clichés.** This skill is meant for business stakeholders, not pitch decks. Avoid "10x"-startup vocabulary: no "pain", "burning need", "killer feature", "rockstar user", "growth hack", "MVP magic", "ship it", "scope creep". Prefer neutral, precise language: **problem / friction / inefficiency / trigger event / current cost / current workaround / constraint / scope expansion / release**. Discovery is interview-grade research, not a hype document.
 - **Adapt phrasing to the user's working language.** When the user writes in a non-English language, render prompts and section labels in idiomatic equivalents — DO NOT translate literally. Specifically for Polish: `problem` → "problem" (NOT "ból"); `friction` → "punkt tarcia" / "tarcie"; `trigger event` → "moment wyzwalający" / "moment, w którym to się dzieje"; `current workaround cost` → "koszt obecnego rozwiązania" / "ile dziś kosztuje obejście"; `current system` → "obecny system" / "stan obecny"; `must preserve` → "co musi zostać" / "czego nie wolno zepsuć"; `release` → "wdrożenie" / "wydanie" (NOT "ship"). When in doubt, ask the user how they'd phrase it themselves — that becomes the canonical label inside the discover-notes for that session.
+- **Ambiguity red-flags block the lock-in.** When a user's answer contains hedging language — "depends", "maybe", "probably", "not sure", "mix of", "somewhere between" (Polish equivalents: "to zależy", "może", "chyba", "nie jestem pewien", "coś pomiędzy") — do NOT lock the decision (pattern step 4) or write it to disk. Ask ONE targeted follow-up that names the ambiguity: "You said it depends — on what, specifically? Pick the dominant case for the first release." If the user genuinely cannot resolve it yet, record the point in a running `## Open Questions` block instead of capturing a hedged answer as if it were a decision. A vague answer written to discover-notes is worse than a named gap — `/product-spec` can surface a gap, but it cannot detect false certainty.
 
 ### Step 1: Vision & problem
 
