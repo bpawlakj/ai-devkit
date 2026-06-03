@@ -46,6 +46,7 @@ Print the resolved mode and target task id.
    - `Package.swift` → `swift test`.
    - None → ask once; cache for the session.
 5. **Baseline run**: full suite once, must be green. Red baseline = STOP.
+6. **Extension opt-in** (once per initiative): if `docs/work/<NNN>-<slug>/extensions.md` exists, honor it; otherwise ask whether to enable the security-baseline gate (full / partial / off) and record the choice there. When enabled, every task diff is checked before commit against baseline security rules — hardcoded secrets, input validation at trust boundaries, parameterized queries, sensitive data in logs, authz on new operations (core set; full mode adds error-detail leaks, dependency hygiene, weak crypto, path traversal, output encoding). Blocking findings stop the commit until fixed or explicitly downgraded with a recorded one-line rationale.
 
 ### Step 3: Read the task
 
@@ -70,9 +71,10 @@ Ask once per task: "Run code review before commit? (security / performance / bot
 ### Step 6: Full suite + commit
 
 1. Check `git status --porcelain` for added/untracked forked copies (`*_new.*`, `*_v2.*`, `*_modified.*`, `*.bak`, `Copy of *`). If any, STOP — fold changes back into the original file first.
-2. Run full detected runner. Must be green.
-3. Show `git diff --stat`. Offer full diff on demand.
-4. Compose commit message:
+2. If extensions are enabled (Step 2 gate 6), evaluate the task diff against the enabled rules. Report each rule as pass / N/A (justified) / advisory / blocking with rule ID and file:line. Blocking findings stop the commit: fix now, or downgrade with a recorded rationale in `extensions.md`.
+3. Run full detected runner. Must be green.
+4. Show `git diff --stat`. Offer full diff on demand.
+5. Compose commit message:
    ```
    <task-id>: <task title from frontmatter>
 
@@ -80,7 +82,7 @@ Ask once per task: "Run code review before commit? (security / performance / bot
 
    Refs: docs/work/<NNN>-<slug>/T-NNN-*.md
    ```
-5. Ask: commit / edit message / show full diff / don't commit.
+6. Ask: commit / edit message / show full diff / don't commit.
 
 Stage only files touched in this task. **Never `git add -A`** or `git add .`.
 

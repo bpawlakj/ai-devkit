@@ -53,6 +53,7 @@ The contract for task and index file shapes lives at `../atomize/references/task
 - `/research` — orthogonal. Research conclusions referenced from `docs/analyzes/<slug>.md` may already be cited in `plan.md`; this skill leaves those references untouched.
 - `~/.claude/rules/*.md` — auto-active language rules (`typescript.md`, `python.md`, `go.md`, etc.). This skill does NOT re-enforce them — it trusts ai-devkit's existing layer.
 - `security-reviewer`, `performance-analyzer` agents — invoked optionally in Step 5 (post-task review) when the user opts in.
+- `extensions/` (next to this SKILL.md) — opt-in quality gates with identified blocking rules (e.g. `security-baseline` → SEC-01..10), checked against the task diff before commit. Discovered via `*.opt-in.md` descriptors at Step 2 gate 6; full rules load only on opt-in. Enablement is per-initiative, recorded in `docs/work/<NNN>-<slug>/extensions.md`. Authoring contract: `extensions/README.md`.
 - `docs/reference/lessons.md` — if the user abandons a task mid-flight, the skill offers to append an observation here.
 
 ## Output language
@@ -141,6 +142,34 @@ Print the detected runner. Offer one-line override.
    - "Stop and let me fix the baseline."
    - "Override (the failures are unrelated and I'll fix them in this task)."
 
+6. **Extension opt-in** (once per initiative). Extensions are opt-in quality gates checked against the task diff before commit — see `extensions/README.md` (relative to this SKILL.md) for the contract.
+
+   - If `docs/work/<NNN>-<slug>/extensions.md` exists, read it — enablement is locked from a prior session. Print one line: "Extensions: security-baseline=partial (recorded <date>)." Load the full rules file for each enabled extension. Done.
+   - Otherwise, glob `extensions/*.opt-in.md` (relative to this SKILL.md). If none exist, skip silently.
+   - For each descriptor found, read it (descriptors are deliberately lightweight) and ask via AskUserQuestion:
+     - question: "Enable the <title> extension for this initiative? It gates every task's diff before commit."
+       header: "<name>"
+       options:
+       - label: "Partial — core rules block, rest advisory (Recommended)"
+         description: "Rules <partial_rules> are blocking; remaining rules print as advisory findings."
+       - label: "Full — all rules block"
+         description: "Every rule is a blocking finding. For security-critical or production-bound work."
+       - label: "Off"
+         description: "The rules file is never loaded. Zero context cost."
+       multiSelect: false
+   - Record the choices in `docs/work/<NNN>-<slug>/extensions.md`:
+
+   ```yaml
+   ---
+   extensions:
+     security-baseline: partial   # full | partial | off
+   recorded: <YYYY-MM-DD>
+   overrides: []                  # appended by Step 6 downgrades
+   ---
+   ```
+
+   - **Deferred loading**: read the full rules file (`extensions/<name>.md`) ONLY for extensions enabled `full` or `partial`. Extensions set to `off` cost nothing.
+
 ### Step 3: Read the task
 
 Read the target T-NNN-*.md FULLY. Extract:
@@ -181,9 +210,14 @@ If yes / partial yes: delegate via the `Agent` tool to the relevant subagent(s).
 
 Before committing:
 1. **Duplicate-file check.** Scan `git status --porcelain` for added/untracked files whose names suggest a forked copy of an existing file (`*_new.*`, `*_v2.*`, `*_modified.*`, `*.bak`, `* copy.*`, `Copy of *`). If any match, STOP — fold the changes back into the original file before committing (see the modify-in-place rule in Step 4).
-2. Run the **full** detected runner once. Must be green.
-3. Show the diff (`git diff --stat` then `git diff` if user wants details).
-4. Compose commit message. Default template:
+2. **Extension rules check** (only if Step 2 gate 6 enabled any extension). Evaluate the task diff against each loaded rules file. For every rule report one state: `pass`, `N/A` (with one-line justification), `advisory finding`, or `blocking finding` — each finding cites its rule ID and the offending file:line. Print the findings table. If blocking findings exist, the commit does NOT proceed; ask per finding:
+   - "Fix now (Recommended)" → jump back to Step 4 with the finding as scope addendum, then re-run this check.
+   - "Downgrade to advisory for this task — recorded" → append to `overrides:` in the initiative's `extensions.md`: `{rule: SEC-NN, task: T-NNN, reason: <user's one-liner>, date: <YYYY-MM-DD>}`. Deliberate and auditable, never silent.
+   - "Stop here" → STOP without committing.
+   Advisory findings are printed but don't block.
+3. Run the **full** detected runner once. Must be green.
+4. Show the diff (`git diff --stat` then `git diff` if user wants details).
+5. Compose commit message. Default template:
 
 ```
 <task-id>: <task title from frontmatter>
@@ -193,7 +227,7 @@ Before committing:
 Refs: docs/work/<NNN>-<slug>/T-NNN-<slug>.md
 ```
 
-5. Ask:
+6. Ask:
    - "Commit with this message" (default)
    - "Edit message"
    - "Show full diff first"
@@ -260,6 +294,9 @@ Append-only; never reorganize prior entries. If the file doesn't exist, create i
 - **Acceptance criteria fail after commit**: do NOT amend. Open a follow-up task (`T-NNN-followup-<id>` with `depends_on: [<original-id>]`) and start it from Step 1.
 - **Test runner is slow** (> 60s baseline): warn once; suggest watch mode (`vitest --watch`, `pytest --watch`, etc.) for inner loop, full suite only at Step 6.
 - **Monorepo**: runner detection walks up from cwd, not repo root. If cwd is `apps/web/`, the closest `package.json` wins. Print resolved cwd for clarity.
+- **Extensions dir absent or empty**: skip the opt-in gate silently — extensions are optional infrastructure, not a precondition.
+- **`extensions.md` vs `/atomize`**: the per-initiative `extensions.md` is owned by this skill; it is NOT part of the task schema and `/atomize` ignores it on reconciliation.
+- **Extension check vs Step 5 review**: they don't replace each other. The extension check (Step 6) is a deterministic rules gate against named criteria; Step 5's `security-reviewer` agent is an open-ended review. Enabling `security-baseline` does not make Step 5's security option redundant — but skipping Step 5 is more defensible when the baseline gate is on.
 
 ## Output summary at session end
 
