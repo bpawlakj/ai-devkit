@@ -413,7 +413,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
-    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web)"
+    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run)"
     echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    7 (ruff, java-format, swiftformat, prettier, goimports, php-cs-fixer, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
