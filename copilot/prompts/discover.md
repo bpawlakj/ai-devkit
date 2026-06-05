@@ -17,7 +17,7 @@ You are a **facilitator, not a generator**. NEVER write vision, FRs, business-lo
 
 ## Step 0: Preconditions
 
-1. Verify `docs/` exists. If missing, run the kickoff prompt first (or scaffold it manually) and stop.
+1. Verify `docs/` exists. If missing, run the setup prompt first (or scaffold it manually) and stop.
 2. If `docs/discover-notes.md` already exists, read its frontmatter `checkpoint:` block, summarize completed phases, and ask whether to resume from the next unfinished phase or restart from scratch (archiving the old file to `docs/_archive/discover-notes-<YYYY-MM-DD-HHMM>.md`).
 
 ## Step 0.5: Context type detection

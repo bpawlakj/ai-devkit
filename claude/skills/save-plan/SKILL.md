@@ -46,7 +46,7 @@ The skill is intentionally lightweight — it captures + writes + optionally cha
 
 - **Claude Code's built-in `/plan` mode** — upstream. User runs `/plan`, approves, then invokes `/save-plan` to persist. This skill is the manual replacement for an `ExitPlanMode` hook (which is deferred work).
 - **`/atomize`** — downstream. `/save-plan` writes `plan.md`; `/atomize` reads it and writes `T-*.md` task files. Step 6 below offers to auto-chain.
-- **`/kickoff`** — prerequisite. `docs/work/` must exist. If absent, this skill delegates to `/kickoff` via the `Skill` tool.
+- **`/setup`** — prerequisite. `docs/work/` must exist. If absent, this skill delegates to `/setup` via the `Skill` tool.
 - **`docs/reference/`** — NOT scanned by this skill. If the plan came from `/discover` or `/research`, those skills already wove reference citations into the plan content (as `> Ref: docs/reference/<file>` blockquotes); `/save-plan` preserves them verbatim, and `/atomize` reads them downstream from `plan.md` directly.
 - **`docs/roadmap.md`** — alternative landing site when Step 1.5 detects roadmap-shape (top-down project sequencing with foundations + slices, see `references/roadmap-shape.md`). In that branch the skill skips slug derivation, NNN allocation, and the `/atomize` offer — the roadmap is edited in place over time and its slices each become their own future `/save-plan` invocations.
 
@@ -61,18 +61,18 @@ test -d docs/work
 If missing, ask:
 
 AskUserQuestion:
-- question: "docs/work/ is missing. Run /kickoff to scaffold the docs/ structure?"
+- question: "docs/work/ is missing. Run /setup to scaffold the docs/ structure?"
   header: "Init?"
   options:
-  - label: "Yes — run /kickoff (Recommended)"
+  - label: "Yes — run /setup (Recommended)"
     description: "Scaffolds docs/ + subdirs, then continues."
   - label: "Create docs/work/ only"
-    description: "Quick mkdir without full /kickoff."
+    description: "Quick mkdir without full /setup."
   - label: "Cancel"
     description: "Exit without changes."
   multiSelect: false
 
-On "Yes": delegate to `kickoff` via the `Skill` tool. Continue when it returns.
+On "Yes": delegate to `setup` via the `Skill` tool. Continue when it returns.
 On "Create only": `mkdir -p docs/work` and continue.
 On "Cancel": STOP.
 

@@ -81,7 +81,7 @@ against it at every write.
   (`references/task-schema.md` in that skill).
 - `/open-web` — the reference for driving the maister Playwright MCP and the
   `$OUT` capture-file discipline reused in Step 3.
-- `/kickoff` — delegated to if `docs/` is needed and absent.
+- `/setup` — delegated to if `docs/` is needed and absent.
 
 ## Output language
 
@@ -121,7 +121,7 @@ ls -d "$DIR"/scenarios "$DIR"/web "$DIR"/api 2>/dev/null
 
 If the source is a `T-NNN` / initiative path, verify `docs/work/` exists. If a
 spec path, verify it exists. If `docs/` is entirely absent and the source needs
-it, offer to delegate to `/kickoff` via the `Skill` tool; STOP if declined.
+it, offer to delegate to `/setup` via the `Skill` tool; STOP if declined.
 A freeform source needs no `docs/`.
 
 ### Step 1: Resolve source + extract acceptance criteria

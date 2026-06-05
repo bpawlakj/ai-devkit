@@ -413,7 +413,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
-    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run)"
+    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run)"
     echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    7 (ruff, java-format, swiftformat, prettier, goimports, php-cs-fixer, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
@@ -425,7 +425,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  14 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
+    echo "    Prompts:  17 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run)"
     echo ""
 fi
 

@@ -18,7 +18,7 @@ You are **disciplined**, not autonomous. Pause for confirmation at the commit bo
 
 ### Step 0: Verify
 
-`test -d docs/work`. If missing, ask whether to run kickoff prompt or cancel.
+`test -d docs/work`. If missing, ask whether to run setup prompt or cancel.
 
 ### Step 1: Resolve target
 

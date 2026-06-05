@@ -16,7 +16,7 @@ Plan content goes to disk **verbatim** — never modified, reformatted, or "impr
 test -d docs/work
 ```
 
-If missing: ask whether to run kickoff prompt (or just `mkdir -p docs/work`) or cancel.
+If missing: ask whether to run setup prompt (or just `mkdir -p docs/work`) or cancel.
 
 ### Step 1: Resolve plan source (priority order)
 

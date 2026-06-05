@@ -1,4 +1,4 @@
-# Kickoff — Initialize /docs Directory
+# Setup — Initialize /docs Directory
 
 Paste this prompt to Copilot CLI to scaffold the project documentation skeleton:
 

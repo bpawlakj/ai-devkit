@@ -43,7 +43,7 @@ The locked schema both this skill and `/product-spec` conform to lives at `refer
 
 ## Relationship to other skills
 
-- `/kickoff` — scaffolds the `/docs` skeleton (`architecture/`, `analyzes/`, `reference/`, `work/`) plus READMEs. `/discover` requires `docs/` to exist; if absent, it delegates to `/kickoff` via the `Skill` tool (Step 0 below).
+- `/setup` — scaffolds the `/docs` skeleton (`architecture/`, `analyzes/`, `reference/`, `work/`) plus READMEs. `/discover` requires `docs/` to exist; if absent, it delegates to `/setup` via the `Skill` tool (Step 0 below).
 - `/product-spec` — consumes `discover-notes.md`. The handoff is the `## Step 8` clipboard write.
 - `docs/reference/` — any file type (`.md`, `.pdf`, `.docx`, `.xlsx`, `.png`, link-collection `.md`, etc.) the user has placed there as input material. `/discover` scans this directory once at Step 0.8, lets the user pick which items are in-scope, and threads them through every phase as supporting evidence.
 
@@ -89,18 +89,18 @@ If it exists, proceed to Step 0.5.
 If missing, the project has not been initialized. Ask:
 
 AskUserQuestion:
-- question: "This directory isn't initialized (docs/ is missing). Run /kickoff now?"
+- question: "This directory isn't initialized (docs/ is missing). Run /setup now?"
   header: "Init?"
   options:
-  - label: "Yes — run /kickoff (Recommended)"
+  - label: "Yes — run /setup (Recommended)"
     description: "Scaffolds the /docs skeleton (architecture/, analyzes/, reference/, work/) with READMEs, then continues discovery."
   - label: "No — stop here"
     description: "Exit without changes. You'll need to initialize before discover can run."
   multiSelect: false
 
-On "Yes": invoke `/kickoff` via the **Skill** tool (NOT via Bash). When `/kickoff` returns, re-check the precondition; if it now passes, continue to Step 0.5. On "No": print "Stopping. Run `/kickoff` when ready, then re-invoke `/discover`." and STOP.
+On "Yes": invoke `/setup` via the **Skill** tool (NOT via Bash). When `/setup` returns, re-check the precondition; if it now passes, continue to Step 0.5. On "No": print "Stopping. Run `/setup` when ready, then re-invoke `/discover`." and STOP.
 
-Do not duplicate `/kickoff`'s scaffold logic. The `Skill` tool is the correct delegation path.
+Do not duplicate `/setup`'s scaffold logic. The `Skill` tool is the correct delegation path.
 
 ### Step 0.5: Resume detection
 

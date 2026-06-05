@@ -95,7 +95,7 @@ Then STOP.
 test -d docs/work
 ```
 
-If missing, ask whether to delegate to `/kickoff`. STOP if declined.
+If missing, ask whether to delegate to `/setup`. STOP if declined.
 
 ### Step 1: Resolve target and mode
 

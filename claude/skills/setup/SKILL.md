@@ -1,5 +1,5 @@
 ---
-name: kickoff
+name: setup
 description: Initialize the /docs directory in this project — scaffold docs/{architecture,analyzes,reference,work}/ plus the tests/e2e/ home for /scenario, with README.md files if absent. Idempotent. For brownfield projects, also offers to run Claude Code's built-in /init to generate CLAUDE.md from codebase analysis.
 allowed-tools:
   - Read
@@ -9,11 +9,11 @@ allowed-tools:
   - Skill
 ---
 
-# /kickoff — Initialize /docs Directory
+# /setup — Initialize /docs Directory
 
 Scaffold the `/docs` directory skeleton (`architecture/`, `analyzes/`, `reference/`, `work/`) plus a `README.md` in each (and at `docs/` root), and the `tests/e2e/` home that `/scenario` writes into, so the project-documentation and E2E-scenario conventions have a place to land. Idempotent: each artifact is independently create-if-absent; re-running on a project where everything is already present is a no-op.
 
-For **brownfield projects** (existing codebase detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis (Step 7). This pairs naturally: workspace conventions scaffolded by `/kickoff` + AI context populated by `/init` = complete one-command onboarding for an existing repo.
+For **brownfield projects** (existing codebase detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis (Step 7). This pairs naturally: workspace conventions scaffolded by `/setup` + AI context populated by `/init` = complete one-command onboarding for an existing repo.
 
 This skill is the explicit entry point for users who want to scaffold workflow conventions up-front. It is NOT a precondition for downstream skills — `/discover`, `/product-spec`, and `/atomize` self-bootstrap or delegate here when needed.
 
@@ -294,11 +294,11 @@ In all cases, STOP after this step. Do not chain into further skills.
 
 ## Notes
 
-- **Idempotent (Steps 1-6).** Re-running `/kickoff` on a project where all artifacts already exist is a no-op for the scaffolding phase (with a status print). Step 7 (brownfield detection) is also idempotent — if `CLAUDE.md` already exists, `/init` is not offered.
+- **Idempotent (Steps 1-6).** Re-running `/setup` on a project where all artifacts already exist is a no-op for the scaffolding phase (with a status print). Step 7 (brownfield detection) is also idempotent — if `CLAUDE.md` already exists, `/init` is not offered.
 - **No forced ordering.** All scaffold artifacts are independent. If only some exist, create the missing ones and leave the existing ones alone.
-- **Not a precondition.** Other skills self-bootstrap. `/kickoff` is for users who like to set up the `/docs` skeleton up-front.
+- **Not a precondition.** Other skills self-bootstrap. `/setup` is for users who like to set up the `/docs` skeleton up-front.
 - **Optional dirs not scaffolded:** `prototypes/`, `_archive/`, dated subdirs. Users add these when needed. The five baseline `docs/` dirs cover ~90% of cases.
 - **`tests/e2e/` is scaffolded but its subdirs are not.** Only `tests/e2e/` + its README are created; `/scenario` creates `scenarios/` / `web/` / `api/` lazily when it first writes, so the scaffold doesn't litter empty dirs. An existing `tests/` layout is never modified — only the `e2e/` subdir and its README are create-if-absent.
 - **Brownfield + /init pairing rationale:** scaffolding workspace conventions and generating CLAUDE.md are two halves of the same task — "make this repo legible to me and to AI agents". Doing them together means a brownfield user gets full onboarding in one command without remembering the second step.
-- **Why delegate to Claude Code's built-in `/init` rather than reimplement:** /init is maintained by Anthropic and improves over time. Wrapping it via the Skill tool means `/kickoff` automatically benefits from upstream improvements without changes here.
-- **Step 7 also fires when `/kickoff` is delegated from another skill** (e.g. `/discover` invoking `/kickoff` when `docs/` is missing). User gets one extra question in nested cases — preferred over inconsistent behavior between direct and nested invocations.
+- **Why delegate to Claude Code's built-in `/init` rather than reimplement:** /init is maintained by Anthropic and improves over time. Wrapping it via the Skill tool means `/setup` automatically benefits from upstream improvements without changes here.
+- **Step 7 also fires when `/setup` is delegated from another skill** (e.g. `/discover` invoking `/setup` when `docs/` is missing). User gets one extra question in nested cases — preferred over inconsistent behavior between direct and nested invocations.

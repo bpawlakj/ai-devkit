@@ -14,7 +14,7 @@ set -euo pipefail
 # claude/skills/save-plan/references/roadmap-shape.md for the two-file
 # rationale.
 #
-# Designed to be called from /save-plan, /atomize, /implement, /kickoff
+# Designed to be called from /save-plan, /atomize, /implement, /setup
 # after they mutate docs/work/. Pure bash (POSIX-ish + GNU find/sort/awk
 # on macOS and Linux), no Python or yq dependency.
 #
@@ -29,7 +29,7 @@ STATUS_FILE="$WORK/STATUS.md"
 TODAY="$(date +%Y-%m-%d)"
 
 if [ ! -d "$WORK" ]; then
-    echo "regenerate-status.sh: $WORK does not exist. Run /kickoff first." >&2
+    echo "regenerate-status.sh: $WORK does not exist. Run /setup first." >&2
     exit 1
 fi
 

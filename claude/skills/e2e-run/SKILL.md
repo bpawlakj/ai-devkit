@@ -61,7 +61,7 @@ once per session before the first run.
 - `extensions/` (next to this SKILL.md) — opt-in API runners (Hurl, Schemathesis)
   for `.hurl` / OpenAPI specs. Discovered via `*.opt-in.md`; enabled per project,
   recorded in `tests/e2e/extensions.md`. Authoring contract: `extensions/README.md`.
-- `/kickoff` — delegated to only if `docs/` is needed for `T-NNN` / initiative
+- `/setup` — delegated to only if `docs/` is needed for `T-NNN` / initiative
   scope resolution and is absent.
 
 ## Output language

@@ -51,7 +51,7 @@ The output is a **point-in-time snapshot**. It records what was known and decide
 
 ## Relationship to other skills
 
-- `/kickoff` — scaffolds `docs/`. `/research` requires `docs/analyzes/` to exist; delegates to `/kickoff` via the `Skill` tool if missing.
+- `/setup` — scaffolds `docs/`. `/research` requires `docs/analyzes/` to exist; delegates to `/setup` via the `Skill` tool if missing.
 - `/discover` — product-level discovery; orthogonal to `/research`. Both can run on the same project at different cadences (discover: once or rarely; research: many times).
 - `/atomize` — downstream consumer in spirit: a research conclusion may seed a `plan.md` in `docs/work/<NNN>-<slug>/`, which `/atomize` then decomposes into tasks.
 - `docs/reference/` — input material of any file type (`.md`, `.pdf`, `.docx`, `.xlsx`, link-collection `.md`, vendor specs, etc.). Step 4 scans this directory for items relevant to the research topic. Binaries are read via their sibling `.md` index per the `docs/reference/README.md` convention. Selected items are cited in Findings using `> Ref: docs/reference/<file> — <claim>` blockquotes.
@@ -129,18 +129,18 @@ test -d docs/analyzes
 If missing, ask:
 
 AskUserQuestion:
-- question: "docs/analyzes/ is missing. Run /kickoff to scaffold the docs/ structure?"
+- question: "docs/analyzes/ is missing. Run /setup to scaffold the docs/ structure?"
   header: "Init?"
   options:
-  - label: "Yes — run /kickoff (Recommended)"
+  - label: "Yes — run /setup (Recommended)"
     description: "Scaffolds docs/ + subdirs, then continues research."
   - label: "Create docs/analyzes/ only"
-    description: "Quick mkdir without full /kickoff. You can run /kickoff later."
+    description: "Quick mkdir without full /setup. You can run /setup later."
   - label: "Cancel"
     description: "Exit without changes."
   multiSelect: false
 
-On "Yes — run /kickoff": delegate to `kickoff` via the `Skill` tool. When it returns, re-check and continue.
+On "Yes — run /setup": delegate to `setup` via the `Skill` tool. When it returns, re-check and continue.
 On "Create only": `mkdir -p docs/analyzes` and continue.
 On "Cancel": STOP.
 

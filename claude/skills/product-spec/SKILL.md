@@ -39,7 +39,7 @@ The locked schema this skill conforms to lives at `../discover/references/produc
 ## Relationship to other skills
 
 - `/discover` — produces `discover-notes.md`, the canonical input. Always preferred upstream of this skill.
-- `/kickoff` — scaffolds the `/docs` skeleton. If `docs/` is missing, `/discover` delegates to it; this skill expects the directory to already exist.
+- `/setup` — scaffolds the `/docs` skeleton. If `docs/` is missing, `/discover` delegates to it; this skill expects the directory to already exist.
 
 ## Initial Response
 
