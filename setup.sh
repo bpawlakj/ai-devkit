@@ -398,6 +398,19 @@ check_tool "aws"                 "brew install awscli (for /aws command)"
 check_tool "kubectl"             "brew install kubectl (for /k8s command)"
 check_tool "helm"                "brew install helm (for /k8s helm commands)"
 
+# Playwright — the default runner for /scenario + /e2e-run. It is a PER-PROJECT
+# dev dependency (and `npx playwright install` pulls ~hundreds of MB of browsers),
+# so this is a check-and-hint only — never an auto-install. The --no-install flag
+# stops npx from downloading anything just to probe the version.
+PW_HINT="for /scenario + /e2e-run, in your project: npm i -D @playwright/test && npx playwright install"
+if ! command -v npx &>/dev/null; then
+    warn "playwright not checkable — Node.js/npx not found (install Node, then $PW_HINT)"
+elif npx --no-install playwright --version &>/dev/null; then
+    ok "playwright ($(npx --no-install playwright --version 2>/dev/null | head -1))"
+else
+    warn "playwright not found — $PW_HINT"
+fi
+
 # ============================================================================
 # Summary
 # ============================================================================
