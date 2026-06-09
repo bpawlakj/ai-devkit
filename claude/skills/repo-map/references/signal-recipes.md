@@ -14,6 +14,21 @@ Exclude churny non-signal so territory/contributors reflect real work:
 NOISE='package-lock.json|pnpm-lock.yaml|yarn.lock|uv.lock|poetry.lock|Cargo.lock|go.sum|\.min\.|/dist/|/build/|__snapshots__|\.snap$|/vendor/|node_modules/|\.generated\.'
 ```
 
+**Optional — process/docs churn.** Planning/process dirs (`docs/`, `context/`,
+changelogs, ADRs) often top the territory list because they're the
+system-of-record, not runtime code — they drown the *active code* signal. When the
+goal is "where is the active code?", add a second filter:
+
+```
+PROCESS='^docs/|^context/|CHANGELOG|/adr/|\.md$'
+# territory of active code: append `| grep -vE "$PROCESS"` to the pipeline below
+```
+
+But don't discard it blindly: **high docs/process churn is itself a signal** of
+where planning/decisions concentrate. Keep one territory pass *with* process dirs
+(activity of the team's process) and, if it dominates, a second pass *without* them
+(activity of the code). Note in the map which view a number came from.
+
 ## 1. Territory — git history
 
 Top changed directories over the window (where work actually happens):

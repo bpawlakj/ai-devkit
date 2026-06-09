@@ -121,7 +121,12 @@ AskUserQuestion:
 
 Spawn **one `Agent` per signal in a single message** (keeps bulky tool output out
 of the main context — each returns structured findings only). Commands per
-`references/signal-recipes.md`:
+`references/signal-recipes.md`.
+
+> **Small repo?** The fan-out exists to keep a *large* repo's tool output out of
+> the context window. For a small/solo codebase (a few dozen files, low commit
+> count) just run the recipes directly — spawning three subagents is overhead with
+> no fidelity gain. Use judgment: fan out when the signals would be large.
 
 - **territory** — git-history: top-N most-changed dirs/files over the window
   (filter lockfiles / generated / snapshots), quarterly breakdown (permanent
