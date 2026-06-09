@@ -6,9 +6,7 @@
 
 ## Active
 
-| ID | Initiative | Tasks (done/total) | Updated |
-|----|------------|---------------------|---------|
-| 001 | [sl-aidlc-p0-gaps](001-sl-aidlc-p0-gaps/) | 2/3 | 2026-06-09 |
+_None._
 
 ## Backlog
 
@@ -16,7 +14,9 @@ _None._
 
 ## Done
 
-_None._
+| ID | Initiative | Tasks | Closed |
+|----|------------|-------|--------|
+| 001 | [sl-aidlc-p0-gaps](001-sl-aidlc-p0-gaps/) | 3/3 | 2026-06-09 |
 
 ## Obsoleted
 

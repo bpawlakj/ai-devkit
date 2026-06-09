@@ -1,11 +1,11 @@
 ---
 id: T-003
 title: Living numbered decision-log convention
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-09
-completed: null
-commit: null
+completed: 2026-06-09
+commit: 1f8b619
 depends_on: []
 blocks: []
 plan_anchor: p0-3-living-numbered-decision-log-convention
@@ -44,3 +44,11 @@ plan_anchor: p0-3-living-numbered-decision-log-convention
 ## Notes
 
 Effort: S–M.
+
+### Implementation note
+
+2026-06-09 (commit 1f8b619): kept thin per plan — no new skill. Locked shape in
+`claude/skills/setup/references/decision-log-schema.md`; `/setup` scaffolds
+`docs/architecture/decisions/` + README; `/research` Step 8.5 appends `D-NNN` on a decision;
+`/implement` references `D-NNN` in commit Refs. `tests/decision-log.bats` (5). Full suite green
+(161 tests, 0 failed).
