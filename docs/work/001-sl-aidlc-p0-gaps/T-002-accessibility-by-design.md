@@ -1,11 +1,11 @@
 ---
 id: T-002
 title: Accessibility by design — rules/accessibility.md + DoD lines
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-09
-completed: null
-commit: null
+completed: 2026-06-09
+commit: 67c8785
 depends_on: []
 blocks: []
 plan_anchor: p0-2-accessibility-by-design-rules-accessibility-md-dod
@@ -43,3 +43,11 @@ plan_anchor: p0-2-accessibility-by-design-rules-accessibility-md-dod
 ## Notes
 
 Effort: M.
+
+### Implementation note
+
+2026-06-09 (commit 67c8785): added `claude/rules/accessibility.md` (13th auto-active rule) +
+`copilot/instructions/accessibility.instructions.md` (installed always, like security). DoD wiring
+in `/scenario` Step 2 (web a11y assertion) and `/implement` Step 4 (a11y as acceptance criterion).
+README rules header corrected 11→13 (was already stale at 11 with 12 files) + accessibility row.
+No bats added — rules have no test coverage by convention; full suite green (156 tests, 0 failed).
