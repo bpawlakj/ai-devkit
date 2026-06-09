@@ -229,6 +229,10 @@ Before committing:
 Refs: docs/work/<NNN>-<slug>/T-NNN-<slug>.md
 ```
 
+   If the task implements a decision recorded in `docs/architecture/decisions/` (an ADR written by
+   `/research`), add that `D-NNN` to the `Refs:` line too — it ties the implementing commit back to
+   the durable verdict that motivated it.
+
 6. Ask:
    - "Commit with this message" (default)
    - "Edit message"

@@ -384,6 +384,23 @@ Populate `related:` frontmatter with every `docs/reference/` and `docs/analyzes/
 
 Write to `docs/analyzes/<slug>.md` (or `<slug>-followup.md` if Step 2 chose follow-up).
 
+### Step 8.5: Record the decision in the log (only when `status: decided`)
+
+If the run reached a decision (`status: decided`, `decision:` non-null), append it to the living
+decision log so the verdict outlives this point-in-time snapshot — this is the durable half of the
+research (SL AiDLC `ART-03`). If `status: open`, skip this step.
+
+- Ensure `docs/architecture/decisions/` exists (delegate to `/setup` if absent).
+- Pick the next sequential `D-NNN` (scan existing `D-*.md` for the highest N, increment).
+- Write `docs/architecture/decisions/D-NNN-<slug>.md` per the locked
+  `../setup/references/decision-log-schema.md`: frontmatter (`id`, `title`, `date`, `status`,
+  `supersedes`/`superseded_by`, `analysis:` pointing back to this `docs/analyzes/<slug>.md`) + body
+  (`## Context`, `## Decision`, `## Consequences`). Keep the record concise — the reasoning lives in
+  the analysis it links to; the record is the durable verdict.
+- If this research superseded an earlier decision, set `supersedes:` here and flip the old record's
+  `status: superseded` + `superseded_by:` **in place** (the one edit the log permits — never rewrite
+  a record's reasoning).
+
 ### Step 9: Hand off
 
 Print summary:

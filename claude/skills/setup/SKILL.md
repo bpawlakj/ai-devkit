@@ -25,6 +25,7 @@ docs/
 ├── product-spec.md              # (created by /product-spec) — what the product IS
 ├── discover-notes.md            # (created by /discover) — transient discovery captures
 ├── architecture/                # design decisions, system docs, integration designs
+│   └── decisions/               # numbered living decision log (D-NNN-<slug>.md, ADRs)
 ├── analyzes/                    # research/evaluation BEFORE decisions (e.g. "should we adopt X?")
 ├── reference/                   # operational specs (vendor configs, limits, schemas)
 └── work/                        # plans + tasks, folder-per-initiative (NNN-<slug>/)
@@ -88,6 +89,18 @@ Examples of what goes here:
 Naming: kebab-case, descriptive. No prefixes (these aren't sequential).
 
 When something is fully superseded (replaced rather than refined), move it to `docs/_archive/YYYY-MM-DD-<doc>.md` and write the replacement at the original path.
+```
+
+**Also scaffold `docs/architecture/decisions/`** — a numbered, living decision log (ART-03). Create the folder and its `README.md` if absent (create-if-absent, idempotent — leave the individual `D-NNN-*.md` records to `/research`). The record shape is locked in `references/decision-log-schema.md` (relative to this SKILL.md). README content:
+
+```
+# Decision Log
+
+Numbered, living architecture decision records. One decision per file: `D-001-<slug>.md`, `D-002-<slug>.md`, … Numbers are sequential and never reused.
+
+Each record (locked shape — see the decision-log schema): `D-NNN`, date, status (proposed | accepted | superseded), context, the decision, consequences, and a link to the `docs/analyzes/<slug>.md` snapshot it came from (if any).
+
+This is a LIVING log: a decision's `status` is updated in place (e.g. → superseded), but a record is never deleted or renumbered — supersede it with a new `D-NNN` that links back. `/research` appends a record here when it reaches a decision; `/implement` references the relevant `D-NNN` when it implements one. This complements `analyzes/` (point-in-time research) — `analyzes/` is the reasoning, `decisions/` is the durable verdict.
 ```
 
 ### Step 3: Scaffold `docs/analyzes/` + `README.md`
@@ -220,6 +233,8 @@ docs/                            [created|present]
 docs/README.md                   [created|present]
 docs/architecture/               [created|present]
 docs/architecture/README.md      [created|present]
+docs/architecture/decisions/     [created|present]
+docs/architecture/decisions/README.md [created|present]
 docs/analyzes/                   [created|present]
 docs/reference/                  [created|present]
 docs/reference/README.md         [created|present]
