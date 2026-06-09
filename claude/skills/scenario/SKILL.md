@@ -158,6 +158,13 @@ Write each path as a numbered, observable sequence ending in an **Assert** drawn
 from the source. Decide the layers (`--layers`, default both where applicable):
 `web` for browser-visible flows, `api` for backend/contract assertions.
 
+For **web** flows, include accessibility as a first-class assertion, not an
+afterthought (P11 / `rules/accessibility.md`): prefer role+name selectors
+(`getByRole('button', { name: ... })`) over CSS — if a step can only be reached
+by CSS, that is itself an a11y finding — and add at least one optimistic path
+asserting an automated accessibility scan is clean (e.g. `@axe-core/playwright`).
+Accessibility is part of the increment's definition of done.
+
 Present the full plan (paths + which layers each maps to) and get explicit
 confirmation via AskUserQuestion:
 

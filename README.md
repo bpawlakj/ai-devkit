@@ -85,7 +85,7 @@ Practical consequence: there is no `/go-build` or `/python-test` slash command. 
 
 ---
 
-### Rules — Coding Standards (11 files)
+### Rules — Coding Standards (13 files)
 
 Auto-activate based on file type. Enforce language/framework best practices without manual setup.
 
@@ -103,6 +103,7 @@ Auto-activate based on file type. Enforce language/framework best practices with
 | **php** | `*.php`, `composer.json` | PSR-12, `strict_types`, typed properties, immutable DTOs, PHPUnit/Pest, PHP-CS-Fixer/Pint, PHPStan/Psalm, prepared statements, CSRF |
 | **swift-ios** | `*.swift`, `Package.swift` | Swift 6 concurrency (`Sendable`, actors), protocol-oriented design, typed throws, Keychain, SwiftFormat, Swift Testing |
 | **e2e-testing** | `*.e2e.ts`, `e2e/**`, `playwright.config.*` | When E2E vs unit, role-based selectors, test independence, wait-for-state, `storageState` reuse, the five anti-patterns, deliberate-breakage verify |
+| **accessibility** | `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`, `*.component.ts/html` | WCAG 2.2 AA: native semantics over ARIA, landmarks + heading order, programmatic labels, keyboard operability + visible focus, contrast, no meaning-by-color-alone, `aria-live` for async, a11y in the definition of done |
 
 ---
 
