@@ -398,6 +398,19 @@ check_tool "aws"                 "brew install awscli (for /aws command)"
 check_tool "kubectl"             "brew install kubectl (for /k8s command)"
 check_tool "helm"                "brew install helm (for /k8s helm commands)"
 
+# Playwright — the default runner for /scenario + /e2e-run. It is a PER-PROJECT
+# dev dependency (and `npx playwright install` pulls ~hundreds of MB of browsers),
+# so this is a check-and-hint only — never an auto-install. The --no-install flag
+# stops npx from downloading anything just to probe the version.
+PW_HINT="for /scenario + /e2e-run, in your project: npm i -D @playwright/test && npx playwright install"
+if ! command -v npx &>/dev/null; then
+    warn "playwright not checkable — Node.js/npx not found (install Node, then $PW_HINT)"
+elif npx --no-install playwright --version &>/dev/null; then
+    ok "playwright ($(npx --no-install playwright --version 2>/dev/null | head -1))"
+else
+    warn "playwright not found — $PW_HINT"
+fi
+
 # ============================================================================
 # Summary
 # ============================================================================
@@ -413,7 +426,7 @@ if $DO_CLAUDE; then
     echo "    Rules:    $(ls "$CLAUDE_DIR/rules/"*.md 2>/dev/null | wc -l) files"
     echo "    Commands: $(ls "$CLAUDE_DIR/commands/"*.md 2>/dev/null | wc -l) files"
     echo "    Agents:   $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l) files"
-    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web)"
+    echo "    Skills:   $(find "$CLAUDE_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') (setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, open-web, scenario, e2e-run)"
     echo "    Scripts:  $(ls "$CLAUDE_DIR/scripts/"*.sh 2>/dev/null | wc -l) files (cloud wrappers)"
     echo "    Hooks:    7 (ruff, java-format, swiftformat, prettier, goimports, php-cs-fixer, safety guard)"
     echo "    Plugin:   Maister (SkillPanel/maister)"
@@ -425,7 +438,7 @@ if $DO_COPILOT; then
     echo "    Agents:   $(ls "$COPILOT_DIR/agents/"*.md 2>/dev/null | wc -l) files"
     echo "    MCP:      configured"
     echo "    Per-repo: 11 instructions + hooks (use install-to-repo.sh)"
-    echo "    Prompts:  14 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], kickoff, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review)"
+    echo "    Prompts:  17 templates (ship, retro, changelog, threat-model, init-permissions [shell-script docs], setup, discover, product-spec, research, save-plan, atomize, implement, agents-md, rule-review, bitbucket-review, scenario, e2e-run)"
     echo ""
 fi
 

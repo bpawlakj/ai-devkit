@@ -50,7 +50,7 @@ The skill is **anti-duplication**: it greps `~/.claude/rules/` for the rules ai-
 ## Relationship to other skills
 
 - `/rule-review` — downstream auditor. Audits the file this skill writes (or any existing one) across 7 dimensions. Run after any meaningful edit.
-- `/kickoff` — workspace bootstrap. If `docs/` is missing, this skill delegates to `/kickoff` first.
+- `/setup` — workspace bootstrap. If `docs/` is missing, this skill delegates to `/setup` first.
 - `/discover` + `/product-spec` — content source. The product-spec's user persona, business logic, and access-control sections become rule anchors. If `docs/product-spec.md` is missing, the skill warns but still proceeds (less anchored content available).
 - `~/.claude/rules/*.md` — auto-active language layer. This skill **reads** these to know what NOT to propose. It never modifies them.
 - Claude Code's built-in `/init` — alternative entry point. `/init` analyzes the codebase and proposes everything; this skill goes the opposite way (propose nothing unless anchored). They're complementary — `/init` first, this skill second with `/rule-review` audit.
@@ -84,7 +84,7 @@ Print: `Target scope: <path>. Canonical file will be <path>/AGENTS.md.`
 test -d docs
 ```
 
-If missing, ask whether to delegate to `/kickoff`. The skill will continue without `docs/`, but content anchoring becomes much weaker.
+If missing, ask whether to delegate to `/setup`. The skill will continue without `docs/`, but content anchoring becomes much weaker.
 
 If `target/AGENTS.md` already exists, ask:
 - "Append to existing file" (recommended for additions)

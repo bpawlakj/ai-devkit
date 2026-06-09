@@ -22,7 +22,7 @@ You do NOT propose rules that ai-devkit already auto-activates via `~/.claude/ru
 
 ### Step 0: Verify and target
 
-`test -d docs`. If missing, suggest running kickoff first.
+`test -d docs`. If missing, suggest running setup first.
 
 Default scope: repo root (`./AGENTS.md`). If the user passes a subdirectory, scope is `<dir>/AGENTS.md`.
 

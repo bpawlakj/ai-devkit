@@ -1,6 +1,6 @@
 ---
-name: kickoff
-description: Initialize the /docs directory in this project — scaffold docs/{architecture,analyzes,reference,work}/ plus README.md files if absent. Idempotent. For brownfield projects, also offers to run Claude Code's built-in /init to generate CLAUDE.md from codebase analysis.
+name: setup
+description: Initialize the /docs directory in this project — scaffold docs/{architecture,analyzes,reference,work}/ plus the tests/e2e/ home for /scenario, with README.md files if absent. Idempotent. For brownfield projects, also offers to run Claude Code's built-in /init to generate CLAUDE.md from codebase analysis.
 allowed-tools:
   - Read
   - Write
@@ -9,11 +9,11 @@ allowed-tools:
   - Skill
 ---
 
-# /kickoff — Initialize /docs Directory
+# /setup — Initialize /docs Directory
 
-Scaffold the `/docs` directory skeleton (`architecture/`, `analyzes/`, `reference/`, `work/`) plus a `README.md` in each (and at `docs/` root), so the project-documentation conventions have a place to land. Idempotent: each artifact is independently create-if-absent; re-running on a project where everything is already present is a no-op.
+Scaffold the `/docs` directory skeleton (`architecture/`, `analyzes/`, `reference/`, `work/`) plus a `README.md` in each (and at `docs/` root), and the `tests/e2e/` home that `/scenario` writes into, so the project-documentation and E2E-scenario conventions have a place to land. Idempotent: each artifact is independently create-if-absent; re-running on a project where everything is already present is a no-op.
 
-For **brownfield projects** (existing codebase detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis (Step 7). This pairs naturally: workspace conventions scaffolded by `/kickoff` + AI context populated by `/init` = complete one-command onboarding for an existing repo.
+For **brownfield projects** (existing codebase detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis (Step 7). This pairs naturally: workspace conventions scaffolded by `/setup` + AI context populated by `/init` = complete one-command onboarding for an existing repo.
 
 This skill is the explicit entry point for users who want to scaffold workflow conventions up-front. It is NOT a precondition for downstream skills — `/discover`, `/product-spec`, and `/atomize` self-bootstrap or delegate here when needed.
 
@@ -25,9 +25,16 @@ docs/
 ├── product-spec.md              # (created by /product-spec) — what the product IS
 ├── discover-notes.md            # (created by /discover) — transient discovery captures
 ├── architecture/                # design decisions, system docs, integration designs
+│   └── decisions/               # numbered living decision log (D-NNN-<slug>.md, ADRs)
 ├── analyzes/                    # research/evaluation BEFORE decisions (e.g. "should we adopt X?")
 ├── reference/                   # operational specs (vendor configs, limits, schemas)
 └── work/                        # plans + tasks, folder-per-initiative (NNN-<slug>/)
+
+tests/
+└── e2e/                         # (E2E scenario home for /scenario + /e2e-run)
+    ├── scenarios/               #   scenario plans (<slug>.md, depends_on links)
+    ├── web/                     #   generated Playwright web tests (.spec.ts)
+    └── api/                     #   generated Playwright API tests (.api.spec.ts)
 ```
 
 **Why this shape, not `context/{changes,archive,foundation}/`:** real engineering projects accrete documentation by *type* (architecture, research, reference, work-in-flight), not by *change-id*. People look up "what's the auth architecture?" much more often than "what was decided on change-id-XYZ?". The split also matches conventions used in mature repos.
@@ -82,6 +89,18 @@ Examples of what goes here:
 Naming: kebab-case, descriptive. No prefixes (these aren't sequential).
 
 When something is fully superseded (replaced rather than refined), move it to `docs/_archive/YYYY-MM-DD-<doc>.md` and write the replacement at the original path.
+```
+
+**Also scaffold `docs/architecture/decisions/`** — a numbered, living decision log (ART-03). Create the folder and its `README.md` if absent (create-if-absent, idempotent — leave the individual `D-NNN-*.md` records to `/research`). The record shape is locked in `references/decision-log-schema.md` (relative to this SKILL.md). README content:
+
+```
+# Decision Log
+
+Numbered, living architecture decision records. One decision per file: `D-001-<slug>.md`, `D-002-<slug>.md`, … Numbers are sequential and never reused.
+
+Each record (locked shape — see the decision-log schema): `D-NNN`, date, status (proposed | accepted | superseded), context, the decision, consequences, and a link to the `docs/analyzes/<slug>.md` snapshot it came from (if any).
+
+This is a LIVING log: a decision's `status` is updated in place (e.g. → superseded), but a record is never deleted or renumbered — supersede it with a new `D-NNN` that links back. `/research` appends a record here when it reaches a decision; `/implement` references the relevant `D-NNN` when it implements one. This complements `analyzes/` (point-in-time research) — `analyzes/` is the reasoning, `decisions/` is the durable verdict.
 ```
 
 ### Step 3: Scaffold `docs/analyzes/` + `README.md`
@@ -168,6 +187,43 @@ bash ~/.claude/scripts/regenerate-status.sh
 
 If the regenerator script is absent (older ai-devkit install without scripts layer), skip silently — `/save-plan` will create STATUS.md on the first initiative.
 
+### Step 5.5: Scaffold `tests/e2e/` + `README.md`
+
+This is the home `/scenario` writes scenario plans and generated tests into, and `/e2e-run` reads from. Create-if-absent, idempotent — never touch an existing `tests/` layout.
+
+If `tests/e2e/` exists, leave it untouched and note `present`. Otherwise `mkdir -p tests/e2e` and note `created`. (Leave the `scenarios/` / `web/` / `api/` subdirs to `/scenario` — it creates them when it first writes, so the scaffold stays empty-but-documented rather than littered with empty dirs.)
+
+If `tests/e2e/README.md` exists, leave it. Otherwise write this canonical content:
+
+```
+# End-to-End Tests
+
+Home for E2E scenarios authored by `/scenario` and run by `/e2e-run`.
+
+## Layout
+
+- **`scenarios/<slug>.md`** — scenario plan: a human-reviewable enumeration of
+  optimistic + pessimistic paths, with frontmatter linking back to the work that
+  motivated it (`depends_on: [T-NNN]`, `initiative:`) and the full `generated:`
+  file list. This is the durable record; the test files are generated from it.
+- **`web/<slug>.spec.ts`** — generated Playwright web tests (browser), tagged
+  `@optimistic` / `@pessimistic`.
+- **`api/<slug>.api.spec.ts`** — generated Playwright API tests (the `request`
+  fixture: seed/login → act → assert backend state → reset).
+- **`extensions.md`** — written by `/e2e-run` when an opt-in API runner (Hurl,
+  Schemathesis) is enabled for this project.
+
+## Conventions
+
+- Author with `/scenario <T-NNN | initiative | spec | freeform>`; run with
+  `/e2e-run <scenario | initiative | T-NNN | all>`.
+- Base URLs and secrets come from env / Playwright config — never hardcoded.
+- Assertions encode acceptance criteria, never observed implementation output.
+- `/e2e-run` is report-only on failure — it never regenerates or "heals" tests.
+- This directory is separate from any unit-test directory on purpose, so the two
+  never collide. Add `playwright-report/` and `test-results/` to `.gitignore`.
+```
+
 ### Step 6: Print summary
 
 Print a status block per artifact:
@@ -177,12 +233,16 @@ docs/                            [created|present]
 docs/README.md                   [created|present]
 docs/architecture/               [created|present]
 docs/architecture/README.md      [created|present]
+docs/architecture/decisions/     [created|present]
+docs/architecture/decisions/README.md [created|present]
 docs/analyzes/                   [created|present]
 docs/reference/                  [created|present]
 docs/reference/README.md         [created|present]
 docs/work/                       [created|present]
 docs/work/README.md              [created|present]
 docs/work/STATUS.md              [created|present]
+tests/e2e/                       [created|present]
+tests/e2e/README.md              [created|present]
 ```
 
 Then a one-paragraph guide:
@@ -192,6 +252,7 @@ Then a one-paragraph guide:
 - `docs/reference/` — vendor specs and operational data.
 - `docs/work/` — initiatives. Use `/atomize` to manage plan → tasks decomposition.
 - `docs/product-spec.md` — created by `/product-spec` when you run the discovery chain.
+- `tests/e2e/` — E2E scenario home. Use `/scenario` to author scenarios and `/e2e-run` to run them.
 
 Then proceed to Step 7 (brownfield check).
 
@@ -248,10 +309,11 @@ In all cases, STOP after this step. Do not chain into further skills.
 
 ## Notes
 
-- **Idempotent (Steps 1-6).** Re-running `/kickoff` on a project where all artifacts already exist is a no-op for the scaffolding phase (with a status print). Step 7 (brownfield detection) is also idempotent — if `CLAUDE.md` already exists, `/init` is not offered.
+- **Idempotent (Steps 1-6).** Re-running `/setup` on a project where all artifacts already exist is a no-op for the scaffolding phase (with a status print). Step 7 (brownfield detection) is also idempotent — if `CLAUDE.md` already exists, `/init` is not offered.
 - **No forced ordering.** All scaffold artifacts are independent. If only some exist, create the missing ones and leave the existing ones alone.
-- **Not a precondition.** Other skills self-bootstrap. `/kickoff` is for users who like to set up the `/docs` skeleton up-front.
-- **Optional dirs not scaffolded:** `prototypes/`, `_archive/`, dated subdirs. Users add these when needed. The five baseline dirs cover ~90% of cases.
+- **Not a precondition.** Other skills self-bootstrap. `/setup` is for users who like to set up the `/docs` skeleton up-front.
+- **Optional dirs not scaffolded:** `prototypes/`, `_archive/`, dated subdirs. Users add these when needed. The five baseline `docs/` dirs cover ~90% of cases.
+- **`tests/e2e/` is scaffolded but its subdirs are not.** Only `tests/e2e/` + its README are created; `/scenario` creates `scenarios/` / `web/` / `api/` lazily when it first writes, so the scaffold doesn't litter empty dirs. An existing `tests/` layout is never modified — only the `e2e/` subdir and its README are create-if-absent.
 - **Brownfield + /init pairing rationale:** scaffolding workspace conventions and generating CLAUDE.md are two halves of the same task — "make this repo legible to me and to AI agents". Doing them together means a brownfield user gets full onboarding in one command without remembering the second step.
-- **Why delegate to Claude Code's built-in `/init` rather than reimplement:** /init is maintained by Anthropic and improves over time. Wrapping it via the Skill tool means `/kickoff` automatically benefits from upstream improvements without changes here.
-- **Step 7 also fires when `/kickoff` is delegated from another skill** (e.g. `/discover` invoking `/kickoff` when `docs/` is missing). User gets one extra question in nested cases — preferred over inconsistent behavior between direct and nested invocations.
+- **Why delegate to Claude Code's built-in `/init` rather than reimplement:** /init is maintained by Anthropic and improves over time. Wrapping it via the Skill tool means `/setup` automatically benefits from upstream improvements without changes here.
+- **Step 7 also fires when `/setup` is delegated from another skill** (e.g. `/discover` invoking `/setup` when `docs/` is missing). User gets one extra question in nested cases — preferred over inconsistent behavior between direct and nested invocations.

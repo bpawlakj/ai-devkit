@@ -53,6 +53,7 @@ The contract for task and index file shapes lives at `../atomize/references/task
 - `/research` — orthogonal. Research conclusions referenced from `docs/analyzes/<slug>.md` may already be cited in `plan.md`; this skill leaves those references untouched.
 - `~/.claude/rules/*.md` — auto-active language rules (`typescript.md`, `python.md`, `go.md`, etc.). This skill does NOT re-enforce them — it trusts ai-devkit's existing layer.
 - `security-reviewer`, `performance-analyzer` agents — invoked optionally in Step 5 (post-task review) when the user opts in.
+- `/scenario` + `/e2e-run` — downstream E2E layer. After implementing a task, `/scenario` authors committed end-to-end scenarios (optimistic + pessimistic paths) linked to it via `depends_on: [T-NNN]`, and `/e2e-run` runs them. Natural flow: `/implement` → `/scenario` → `/e2e-run`. They share this skill's assertion-oracle rule (assert against acceptance criteria, never observed output) and modify-in-place discipline.
 - `extensions/` (next to this SKILL.md) — opt-in quality gates with identified blocking rules (e.g. `security-baseline` → SEC-01..10), checked against the task diff before commit. Discovered via `*.opt-in.md` descriptors at Step 2 gate 6; full rules load only on opt-in. Enablement is per-initiative, recorded in `docs/work/<NNN>-<slug>/extensions.md`. Authoring contract: `extensions/README.md`.
 - `docs/reference/lessons.md` — if the user abandons a task mid-flight, the skill offers to append an observation here.
 
@@ -94,7 +95,7 @@ Then STOP.
 test -d docs/work
 ```
 
-If missing, ask whether to delegate to `/kickoff`. STOP if declined.
+If missing, ask whether to delegate to `/setup`. STOP if declined.
 
 ### Step 1: Resolve target and mode
 
@@ -191,6 +192,7 @@ In both branches:
 - **The assertion's expected value must come from `## Acceptance` / the spec / requirements — never read off the implementation.** A test whose oracle is the code only cements current behavior, bugs included (the *oracle problem*). Assert observable behavior or persisted state (e.g. the DB row that was written), not the function's own return value echoed back. Confirm the test fails *for the right reason*: red before the implementation exists (test-first), or — for implement-then-verify — break the behavior once, confirm red, then revert (never commit the break).
 - Edit only files listed in `## Scope` or files reasonably implied by them. If a substantial edit lands outside scope, surface it to the user: "This required touching `<file>` not in scope — confirm?"
 - **Modify in place — never fork files.** When a task changes an existing file, edit that file directly. NEVER create sibling copies as a way to "preserve" the original (`UserService_new.ts`, `auth_v2.py`, `Component.modified.tsx`, `routes.bak`, `Copy of X`) — git preserves history; duplicates rot into dead code that confuses every later task. New files are reserved for genuinely new modules named or implied by `## Scope`.
+- **Accessibility is part of done for UI work.** When the task touches user-facing UI, an increment is not done until it meets the accessibility bar (P11 / `rules/accessibility.md`): keyboard-operable, programmatic labels, visible focus, sufficient contrast, no meaning-by-color-alone. Treat a missing label or unreachable control as a failing acceptance criterion, not a follow-up ticket — verify with the keyboard and an automated check (axe / Lighthouse) before commit.
 
 ### Step 5: Optional review
 
@@ -226,6 +228,10 @@ Before committing:
 
 Refs: docs/work/<NNN>-<slug>/T-NNN-<slug>.md
 ```
+
+   If the task implements a decision recorded in `docs/architecture/decisions/` (an ADR written by
+   `/research`), add that `D-NNN` to the `Refs:` line too — it ties the implementing commit back to
+   the durable verdict that motivated it.
 
 6. Ask:
    - "Commit with this message" (default)

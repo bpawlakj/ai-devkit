@@ -12,5 +12,9 @@ Thumbs.db
 # Generated
 code-review-report.md
 
+# Python bytecode (e.g. from bitbucket-review helper / bats py_compile)
+__pycache__/
+*.pyc
+
 # Playwright MCP (server-side artifacts from /open-web)
 .playwright-mcp/

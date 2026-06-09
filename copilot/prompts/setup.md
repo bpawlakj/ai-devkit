@@ -1,4 +1,4 @@
-# Kickoff — Initialize /docs Directory
+# Setup — Initialize /docs Directory
 
 Paste this prompt to Copilot CLI to scaffold the project documentation skeleton:
 
@@ -15,6 +15,8 @@ docs/
 ├── analyzes/            — research/eval before decisions
 ├── reference/           — operational specs (vendor configs, limits)
 └── work/                — in-flight initiatives (folder-per-initiative)
+tests/
+└── e2e/                 — E2E scenario home (scenario + e2e-run prompts)
 ```
 
 **Steps:**
@@ -103,7 +105,23 @@ docs/
    4. When plan changes, edit plan.md and re-reconcile tasks.
    ```
 
-6. **Print status block:**
+6. **`tests/e2e/` + `README.md`** — if missing, create `tests/e2e/` (leave `scenarios/`/`web/`/`api/` subdirs to the scenario prompt). Never modify an existing `tests/` layout. README:
+
+   ```
+   # End-to-End Tests
+
+   Home for E2E scenarios authored by the scenario prompt and run by the e2e-run prompt.
+
+   Layout: scenarios/<slug>.md (plan + depends_on links + generated: list),
+   web/<slug>.spec.ts (Playwright browser, @optimistic/@pessimistic tags),
+   api/<slug>.api.spec.ts (Playwright request fixture), extensions.md (opt-in API runners).
+
+   Base URLs/secrets from env, never hardcoded. Assertions encode acceptance criteria,
+   not observed output. e2e-run is report-only on failure — never regenerates tests.
+   Separate from unit tests on purpose. Gitignore playwright-report/ + test-results/.
+   ```
+
+7. **Print status block:**
 
    ```
    docs/                            [created|present]
@@ -116,9 +134,11 @@ docs/
    docs/reference/README.md         [created|present]
    docs/work/                       [created|present]
    docs/work/README.md              [created|present]
+   tests/e2e/                       [created|present]
+   tests/e2e/README.md              [created|present]
    ```
 
-7. **Brownfield detection** — detect whether existing codebase, and if so, suggest generating an AI-context file:
+8. **Brownfield detection** — detect whether existing codebase, and if so, suggest generating an AI-context file:
 
    ```bash
    # Tier 1 (strong): version control with history
@@ -136,4 +156,4 @@ docs/
 - Never overwrite existing content in scaffold phase. If a file or directory exists, leave it untouched and mark `present`.
 - Each scaffold artifact is independent — create only what's missing.
 - Brownfield detection is fast (two bash calls, no file reading) so the no-op case stays quick.
-- Stop after Step 7.
+- Stop after Step 8.

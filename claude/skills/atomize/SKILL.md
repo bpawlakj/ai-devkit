@@ -44,7 +44,7 @@ The contract for task and index file shapes lives at `references/task-schema.md`
 
 ## Relationship to other skills
 
-- `/kickoff` — scaffolds `docs/work/`. `/atomize` requires the folder structure exists; if missing, delegates to `/kickoff` via the `Skill` tool.
+- `/setup` — scaffolds `docs/work/`. `/atomize` requires the folder structure exists; if missing, delegates to `/setup` via the `Skill` tool.
 - Claude Code's built-in `/plan` mode — upstream of `/atomize`. User runs `/plan`, approves output, manually copies plan content into `docs/work/<NNN>-<slug>/plan.md`, then invokes `/atomize`.
 
 ## Initial Response
@@ -75,7 +75,7 @@ Then STOP.
 test -d "<target-folder>" && test -f "<target-folder>/plan.md"
 ```
 
-If folder is missing: ask whether to run `/kickoff` first (then re-invoke). If `plan.md` is missing: tell the user to copy the `/plan` output into `<target-folder>/plan.md` and re-invoke. STOP either way.
+If folder is missing: ask whether to run `/setup` first (then re-invoke). If `plan.md` is missing: tell the user to copy the `/plan` output into `<target-folder>/plan.md` and re-invoke. STOP either way.
 
 If the folder exists but isn't under `docs/work/`, warn but allow (user may have a custom location). Print: "Target folder is outside docs/work/ — proceeding, but this isn't the conventional location."
 

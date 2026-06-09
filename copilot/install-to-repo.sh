@@ -66,6 +66,10 @@ mkdir -p "$PROJECT_DIR/.github/hooks"
 cp "$SCRIPT_DIR/instructions/security.instructions.md" "$PROJECT_DIR/.github/instructions/"
 ok "security.instructions.md"
 
+# Install accessibility (always — cross-cutting, applies to all UI work)
+cp "$SCRIPT_DIR/instructions/accessibility.instructions.md" "$PROJECT_DIR/.github/instructions/"
+ok "accessibility.instructions.md"
+
 # Install language-specific instructions
 install_instruction() {
     local name="$1"
@@ -82,6 +86,7 @@ if [ -z "$LANGUAGES" ]; then
         [ -f "$f" ] || continue
         name=$(basename "$f")
         [[ "$name" == "security.instructions.md" ]] && continue  # already installed
+        [[ "$name" == "accessibility.instructions.md" ]] && continue  # already installed
         cp "$f" "$PROJECT_DIR/.github/instructions/"
         ok "$name"
     done

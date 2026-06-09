@@ -59,7 +59,7 @@ Unresolved items with owner + tentative resolution path.
 test -d docs/analyzes
 ```
 
-If missing, ask whether to scaffold (run kickoff prompt or just `mkdir -p docs/analyzes`) or cancel.
+If missing, ask whether to scaffold (run setup prompt or just `mkdir -p docs/analyzes`) or cancel.
 
 ### Step 1: Capture topic
 
