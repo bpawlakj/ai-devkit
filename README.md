@@ -355,9 +355,9 @@ Static code analysis for performance bottlenecks:
 
 ---
 
-### Skills — Discovery → Plan → Execute → Test → Audit Workflow (14 skills)
+### Skills — Discovery → Plan → Execute → Test → Audit Workflow (16 skills)
 
-Five complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules, (5) author E2E scenarios → run them. Plus two integration skills — `/open-web` (browser bridge for content `WebFetch` can't read) and `/bitbucket-review` (Claude code review for Bitbucket PRs over the REST API) — and an eval harness (`/eval`) that scores AI output against golden tasks to catch regressions when the model or harness changes. Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
+Five complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules, (5) author E2E scenarios → run them. Plus two integration skills — `/open-web` (browser bridge for content `WebFetch` can't read) and `/bitbucket-review` (Claude code review for Bitbucket PRs over the REST API) — an eval harness (`/eval`) that scores AI output against golden tasks to catch regressions when the model or harness changes, and two engineering-infra skills: `/repo-map` (evidence-based map of an unfamiliar repo before you change it) and `/ci-setup` (CI pipeline with coverage gate + optional AI review). Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas.
 
 | Skill | Purpose | Output |
 |---|---|---|
@@ -374,6 +374,8 @@ Five complementary workflows: (1) idea → product spec, (2) per-decision resear
 | `/scenario` | Author E2E test scenarios from a `T-NNN` task, initiative, product-spec, or freeform idea, and generate **committed** Playwright tests into `tests/e2e/`. Enumerates **optimistic + pessimistic paths**, presents them as a human-reviewable plan (`tests/e2e/scenarios/<slug>.md`, frontmatter `depends_on: [T-NNN]` + `initiative:` back-links), and only after explicit confirmation generates tagged `.spec.ts` — web via the browser, backend via Playwright's `request` fixture. Optionally grounds web selectors against a live app via the Playwright MCP (role/test-id locators). Assertion oracle = acceptance criteria, never observed output. Does NOT run tests and never auto-heals. Pairs with the auto-active `rules/e2e-testing.md`. | `tests/e2e/scenarios/<slug>.md` + tagged `.spec.ts` (web/api) |
 | `/e2e-run` | Discover and run the scenarios `/scenario` authored, with the right tool per artifact and scoped to what you ask for. Default runner is **Playwright** (`npx playwright test`); dedicated API runners — **Hurl** (`.hurl`), **Schemathesis** (OpenAPI) — are opt-in extensions (`extensions/` mechanism, recorded in `tests/e2e/extensions.md`). Resolves scope from a scenario `.md`, an initiative, a `T-NNN` (via `depends_on`), a path-type tag (`--grep @optimistic`/`@pessimistic`), or a layer. Reports pass/fail per layer + path type with trace artifacts. **Report-only on failure — never regenerates or auto-heals**; never auto-installs a tool. Optional one-line result note to the linked task's `## Notes` (never flips `status`). | Test run + structured report (+ optional task `## Notes` line) |
 | `/eval` | Run a golden-task evaluation harness over AI output to catch quality regressions when the model or harness changes. Reads golden tasks (input + a known `## Expected` outcome) from an `evals/` directory, runs each against its named `target:` (a skill, prompt, agent, or product LLM feature), scores output against the **oracle** (`rubric` via a fresh judge agent / `assert` / `exact`) — never against the implementation's own echo, compares to a git-tracked `baseline.json`, and reports pass/fail per task plus a regression delta. A run fails on any drop vs baseline (`allow_regressions: false`), not just on missing a threshold; the baseline is stamped with model + harness so a drop is attributable to an upgrade. Scaffolds a starter `evals/` on first run. Closes EVAL-07-grade concreteness; pairs with `/ci-setup` for a CI gate. | `evals/` scaffold + run report (+ accepted `baseline.json` on `--accept`) |
+| `/repo-map` | Brownfield/legacy onboarding: build an evidence-based map of an unfamiliar or large repo *before* changing it. Three read-only signal subagents in parallel (`references/signal-recipes.md`): **territory** (git-history top-changed paths, noise-filtered, with an optional process/docs-churn discount), **structure** (dependency grapher → entry points, import direction, cycles, coupling), **contributors** (who-to-ask, bot/AI commits filtered). For small/solo repos runs the recipes directly instead of fanning out. Evidence rule: a label without evidence goes in `unknowns`, never asserted; optional `--verify` confirms structural claims with `ast-grep`. Read-only — never executes or modifies target code, never auto-installs a grapher. Feeds `/research`, `/implement` (blast radius), `/agents-md`. | `docs/architecture/repo-map.md` |
+| `/ci-setup` | Generate a CI pipeline: GitHub Actions workflow that lints, tests, enforces a **coverage gate** (default 80%), publishes coverage to Codecov (badge + PR diff-coverage), and optionally adds **AI code review** on PRs — two recipes (`references/ai-reviewers.md`): kukuvaia on a self-hosted runner or the official Claude Code Action. Detects the stack (Python/uv, Node/npm) via `/implement`'s runner-detection. Mandatory human-review gate before writing; idempotent collisions; below-target coverage becomes a non-blocking warning, never a red-on-day-one block. Self-hosted jobs same-repo-only and dormant until `SELF_HOSTED_CI=true`. Never stores secrets, never commits/pushes. CI-only (no CD). | `.github/workflows/ci.yml` (+ reviewer wiring) |
 | `/bitbucket-review` | Automated Claude code review for a Bitbucket Cloud PR, driven by the REST API — the Bitbucket counterpart to `/code-review --comment` (which is GitHub-only). Fetches PR metadata + the unified diff over the API (no local clone needed), runs a structured review (correctness + reuse/simplification/efficiency, optional `--security` pass), prints findings in chat, and **opt-in** posts them back as inline (`--comment`) or summary (`--summary-comment`) comments. A Python stdlib helper (`scripts/bb_review.py`) does the deterministic plumbing — API I/O, the `/diff` 302 redirect, pagination, 429 backoff, and unified-diff line mapping so inline anchors are always valid. Auth via **API token** (App Passwords are disabled 2026-06-09); `BITBUCKET_EMAIL` + `BITBUCKET_API_TOKEN`. Posting defaults to OFF so a run never silently writes to a shared PR. `--repo <path>` gives reviewers full-file context the raw diff lacks. | Findings in chat (+ optional PR comments) |
 
 **Workspace layout (`/setup` creates):**
@@ -651,7 +653,7 @@ ai-devkit/
 │   ├── rules/                       # 12 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
-│   ├── skills/                      # 14 skills (subfolders + references)
+│   ├── skills/                      # 16 skills (subfolders + references)
 │   │   ├── setup/SKILL.md         #   /setup — scaffold /docs + optional /init for brownfield
 │   │   ├── discover/                #   /discover — structured product discovery
 │   │   │   ├── SKILL.md
@@ -681,10 +683,19 @@ ai-devkit/
 │   │   │   ├── SKILL.md
 │   │   │   ├── references/runner-detection.md
 │   │   │   └── extensions/          #   api-hurl + api-schemathesis (opt-in API runners)
-│   │   └── bitbucket-review/        #   /bitbucket-review — Claude code review for Bitbucket PRs via REST API
+│   │   ├── bitbucket-review/        #   /bitbucket-review — Claude code review for Bitbucket PRs via REST API
+│   │   │   ├── SKILL.md
+│   │   │   ├── scripts/bb_review.py #     API I/O + unified-diff line mapping (stdlib only)
+│   │   │   └── references/review-rubric.md + bitbucket-api.md
+│   │   ├── eval/                    #   /eval — golden-task eval harness (regressions on model/harness change)
+│   │   │   ├── SKILL.md
+│   │   │   └── references/eval-schema.md
+│   │   ├── repo-map/                #   /repo-map — evidence-based map of an unfamiliar repo (Wide Scan)
+│   │   │   ├── SKILL.md
+│   │   │   └── references/signal-recipes.md + repo-map-schema.md
+│   │   └── ci-setup/                #   /ci-setup — CI pipeline: lint+test+coverage gate (+ optional AI review)
 │   │       ├── SKILL.md
-│   │       ├── scripts/bb_review.py #     API I/O + unified-diff line mapping (stdlib only)
-│   │       └── references/review-rubric.md + bitbucket-api.md
+│   │       └── references/ci-recipes.md + ai-reviewers.md + coverage-codecov.md
 │   └── scripts/                     # 10 scripts (wrappers, dashboards, hooks, project init, docs/work rollup)
 │       ├── awscmd.sh                #   AWS CLI wrapper (MFA + role assumption)
 │       ├── kubecmd.sh               #   kubectl/helm wrapper (EKS auth)
