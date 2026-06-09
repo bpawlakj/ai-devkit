@@ -1,11 +1,11 @@
 ---
 id: T-001
 title: EVAL harness — /eval skill + evals/ convention
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-09
-completed: null
-commit: null
+completed: 2026-06-09
+commit: c3a191c
 depends_on: []
 blocks: []
 plan_anchor: p0-1-eval-harness-eval-skill-evals-convention
@@ -49,3 +49,10 @@ plan_anchor: p0-1-eval-harness-eval-skill-evals-convention
 
 Effort: L. The CI hook is the optional second half — if it grows, split it into a follow-up task
 (`depends_on: [T-001]`) rather than expanding this one.
+
+### Implementation note
+
+2026-06-09 (commit c3a191c): added `claude/skills/eval/` (SKILL.md + `references/eval-schema.md`),
+`copilot/prompts/eval.md`, and `tests/eval.bats` (7 tests). README skills 12→13 + `/eval` row;
+CHANGELOG `[Unreleased]` entry. Full bats suite green (156 tests, 0 failed). The CI hook was kept
+as a documented follow-up owned by `/ci-setup` (not built here) to hold this task to one PR.
