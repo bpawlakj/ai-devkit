@@ -1,6 +1,6 @@
 # Initiative status
 
-> Auto-generated from `docs/work/*/`. Last updated: 2026-06-09.
+> Auto-generated from `docs/work/*/`. Last updated: 2026-06-10.
 > Maintained by `/save-plan`, `/atomize`, `/implement`. Manual edits are overwritten on the next run — to influence the table, change `plan.md` `status:` or task `T-*.md` `status:` frontmatter.
 > Top-down product sequencing (foundations + slices) lives at `docs/roadmap.md`, hand-edited.
 
@@ -10,7 +10,9 @@ _None._
 
 ## Backlog
 
-_None._
+| ID | Initiative | Tasks | Created |
+|----|------------|-------|---------|
+| 002 | [sl-aidlc-p1-gaps](002-sl-aidlc-p1-gaps/) | 0/7 | 2026-06-10 |
 
 ## Done
 
