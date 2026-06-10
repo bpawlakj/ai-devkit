@@ -91,7 +91,7 @@ Auto-activate based on file type. Enforce language/framework best practices with
 
 | Rule | Activates On | What It Enforces |
 |---|---|---|
-| **security** | `*.java`, `*.py`, `*.swift`, `*.ts`, `*.js`, `*.yml`, `.env*` | OWASP checklist, STRIDE threat model, secrets management, injection prevention, dependency scanning |
+| **security** | `*.java`, `*.py`, `*.swift`, `*.ts`, `*.js`, `*.yml`, `.env*` | OWASP checklist, STRIDE threat model, secrets management, injection prevention, dependency scanning, Privacy/GDPR by design (data minimisation, lawful basis, pseudonymised logs, retention, right to erasure) |
 | **java** | `*.java` | Records, sealed classes, Optional usage, immutability (`final`, `List.copyOf()`), modern Java 17+ patterns, JUnit 5 + AssertJ + Mockito + Testcontainers |
 | **spring-boot** | `*.java`, `application*.yml`, `pom.xml`, `build.gradle*` | Layered architecture, constructor injection, record DTOs with Bean Validation, `@ControllerAdvice`, Spring Security (JWT, CSRF, CORS), Testcontainers |
 | **python** | `*.py`, `*.pyi` | PEP 8, type annotations, `Protocol` duck typing, frozen dataclasses, ruff, pytest with marks, 80% coverage |
@@ -374,7 +374,7 @@ Five complementary workflows: (1) idea → product spec, (2) per-decision resear
 | `/open-web` | Drive a real headed browser via the maister Playwright MCP server to load a URL, wait for it to settle, capture an accessibility snapshot + optional screenshot, and surface JS console errors. Bridges the two cases `WebFetch` can't handle: auth-walled pages (course platforms, internal dashboards, private repos — the headed browser inherits whatever session you have open) and JavaScript-rendered SPAs (WebFetch sees an empty HTML shell before JS runs). Default-leaves-tab-open so cookies/session persist across calls; `--close` to clean up, `--no-screenshot` to skip the PNG, `--timeout 15s` to override the 5s wait. Does NOT silently fall back to `WebFetch` if Playwright is unreachable — surfaces the problem instead. Does NOT auto-click through login forms. | Page snapshot + screenshot + console log |
 | `/scenario` | Author E2E test scenarios from a `T-NNN` task, initiative, product-spec, or freeform idea, and generate **committed** Playwright tests into `tests/e2e/`. Enumerates **optimistic + pessimistic paths**, presents them as a human-reviewable plan (`tests/e2e/scenarios/<slug>.md`, frontmatter `depends_on: [T-NNN]` + `initiative:` back-links), and only after explicit confirmation generates tagged `.spec.ts` — web via the browser, backend via Playwright's `request` fixture. Optionally grounds web selectors against a live app via the Playwright MCP (role/test-id locators). Assertion oracle = acceptance criteria, never observed output. Does NOT run tests and never auto-heals. Pairs with the auto-active `rules/e2e-testing.md`. | `tests/e2e/scenarios/<slug>.md` + tagged `.spec.ts` (web/api) |
 | `/e2e-run` | Discover and run the scenarios `/scenario` authored, with the right tool per artifact and scoped to what you ask for. Default runner is **Playwright** (`npx playwright test`); dedicated API runners — **Hurl** (`.hurl`), **Schemathesis** (OpenAPI) — are opt-in extensions (`extensions/` mechanism, recorded in `tests/e2e/extensions.md`). Resolves scope from a scenario `.md`, an initiative, a `T-NNN` (via `depends_on`), a path-type tag (`--grep @optimistic`/`@pessimistic`), or a layer. Reports pass/fail per layer + path type with trace artifacts. **Report-only on failure — never regenerates or auto-heals**; never auto-installs a tool. Optional one-line result note to the linked task's `## Notes` (never flips `status`). | Test run + structured report (+ optional task `## Notes` line) |
-| `/eval` | Run a golden-task evaluation harness over AI output to catch quality regressions when the model or harness changes. Reads golden tasks (input + a known `## Expected` outcome) from an `evals/` directory, runs each against its named `target:` (a skill, prompt, agent, or product LLM feature), scores output against the **oracle** (`rubric` via a fresh judge agent / `assert` / `exact`) — never against the implementation's own echo, compares to a git-tracked `baseline.json`, and reports pass/fail per task plus a regression delta. A run fails on any drop vs baseline (`allow_regressions: false`), not just on missing a threshold; the baseline is stamped with model + harness so a drop is attributable to an upgrade. Scaffolds a starter `evals/` on first run. Closes EVAL-07-grade concreteness; pairs with `/ci-setup` for a CI gate. | `evals/` scaffold + run report (+ accepted `baseline.json` on `--accept`) |
+| `/eval` | Run a golden-task evaluation harness over AI output to catch quality regressions when the model or harness changes. Reads golden tasks (input + a known `## Expected` outcome) from an `evals/` directory, runs each against its named `target:` (a skill, prompt, agent, or product LLM feature), scores output against the **oracle** (`rubric` via a fresh judge agent / `assert` / `exact`) — never against the implementation's own echo, compares to a git-tracked `baseline.json`, and reports pass/fail per task plus a regression delta. A run fails on any drop vs baseline (`allow_regressions: false`), not just on missing a threshold; the baseline is stamped with model + harness so a drop is attributable to an upgrade — and carries per-task **cost/token telemetry** (`gen_ai.usage.*` + `cost_usd`, numbers only — never prompt/completion text; cost deltas inform, quality thresholds decide). Golden tasks declare a `pattern:` taxonomy (A artifact-correctness / B process-discipline / C config-compliance) and rubric grading is **per-expectation** (fraction met — more deterministic than one holistic score). When `evals/triggers.json` exists, Step 3.5 also runs **trigger discrimination**: `{query, should_trigger}` cases with adversarial negatives — firing on a `should_trigger: false` case is a failure (over-triggering = the skill-collision failure mode). Scaffolds a starter `evals/` on first run. Closes EVAL-07-grade concreteness; pairs with `/ci-setup` for a CI gate. | `evals/` scaffold + run report (+ accepted `baseline.json` on `--accept`) |
 | `/repo-map` | Brownfield/legacy onboarding: build an evidence-based map of an unfamiliar or large repo *before* changing it. Three read-only signal subagents in parallel (`references/signal-recipes.md`): **territory** (git-history top-changed paths, noise-filtered, with an optional process/docs-churn discount), **structure** (dependency grapher → entry points, import direction, cycles, coupling), **contributors** (who-to-ask, bot/AI commits filtered). For small/solo repos runs the recipes directly instead of fanning out. Evidence rule: a label without evidence goes in `unknowns`, never asserted; optional `--verify` confirms structural claims with `ast-grep`. Read-only — never executes or modifies target code, never auto-installs a grapher. Feeds `/research`, `/implement` (blast radius), `/agents-md`. | `docs/architecture/repo-map.md` |
 | `/ci-setup` | Generate a CI pipeline: GitHub Actions workflow that lints, tests, enforces a **coverage gate** (default 80%), publishes coverage to Codecov (badge + PR diff-coverage), and optionally adds **AI code review** on PRs — two recipes (`references/ai-reviewers.md`): kukuvaia on a self-hosted runner or the official Claude Code Action. Detects the stack (Python/uv, Node/npm) via `/implement`'s runner-detection. Mandatory human-review gate before writing; idempotent collisions; below-target coverage becomes a non-blocking warning, never a red-on-day-one block. Self-hosted jobs same-repo-only and dormant until `SELF_HOSTED_CI=true`. Never stores secrets, never commits/pushes. CI-only (no CD). | `.github/workflows/ci.yml` (+ reviewer wiring) |
 | `/bitbucket-review` | Automated Claude code review for a Bitbucket Cloud PR, driven by the REST API — the Bitbucket counterpart to `/code-review --comment` (which is GitHub-only). Fetches PR metadata + the unified diff over the API (no local clone needed), runs a structured review (correctness + reuse/simplification/efficiency, optional `--security` pass), prints findings in chat, and **opt-in** posts them back as inline (`--comment`) or summary (`--summary-comment`) comments. A Python stdlib helper (`scripts/bb_review.py`) does the deterministic plumbing — API I/O, the `/diff` 302 redirect, pagination, 429 backoff, and unified-diff line mapping so inline anchors are always valid. Auth via **API token** (App Passwords are disabled 2026-06-09); `BITBUCKET_EMAIL` + `BITBUCKET_API_TOKEN`. Posting defaults to OFF so a run never silently writes to a shared PR. `--repo <path>` gives reviewers full-file context the raw diff lacks. | Findings in chat (+ optional PR comments) |
@@ -468,7 +468,7 @@ This is environment configuration — it has to exist before the agent runs (see
 
 ---
 
-### Hooks — Auto-Triggers (8 hooks)
+### Hooks — Auto-Triggers (9 hooks)
 
 Run automatically on specific events. Claude Code only.
 
@@ -652,7 +652,7 @@ ai-devkit/
 │
 ├── claude/                          # Claude Code specific
 │   ├── settings.template.json       # Hooks, plugins, MCP servers
-│   ├── rules/                       # 12 coding standard files
+│   ├── rules/                       # 14 coding standard files
 │   ├── commands/                    # 7 slash commands
 │   ├── agents/                      # 3 specialized agents
 │   ├── skills/                      # 16 skills (subfolders + references)
@@ -705,19 +705,29 @@ ai-devkit/
 │       ├── k8s-dashboard.sh         #   K8s environment dashboard
 │       ├── cloud-discover.sh        #   AWS profile discovery (JSON output)
 │       ├── cloud-setup.sh           #   Interactive setup wizard (standalone)
-│       ├── cloud-guard.sh           #   PreToolUse safety guard (rm -rf, push --force, --no-verify)
+│       ├── cloud-guard.sh           #   PreToolUse cloud guard (AWS/kubectl/helm write-ops; git/rm patterns live in the inline settings hook)
 │       ├── prompt-hook.sh           #   UserPromptSubmit hook (dashboard injection)
 │       ├── init-project-permissions.sh  # Per-project .claude/settings.json (M1L3 policy)
 │       └── regenerate-status.sh     #   docs/work/STATUS.md rebuilder (called by save-plan/atomize/implement/setup)
 │
-├── tests/                           # BATS unit tests (75 tests)
+├── evals/                           # /eval fixtures for ai-devkit itself
+│   └── triggers.json                #   Skill-routing discrimination cases (adversarial negatives, /eval Step 3.5)
+│
+├── tests/                           # BATS unit tests (181 tests, 13 files)
 │   ├── test_helper.bash             #   Shared setup: temp dirs, mock configs
 │   ├── aws-dashboard.bats           #   Dashboard rendering, MFA status
 │   ├── awscmd.bats                  #   Profile validation, security
+│   ├── bitbucket-review.bats        #   PR review skill: creds guard, diff line mapping
 │   ├── cloud-discover.bats          #   Profile discovery, auto-detection
+│   ├── cloud-guard.bats             #   Cloud write-op blocking (AWS/kubectl/helm)
+│   ├── decision-log.bats            #   D-NNN decision-log convention
+│   ├── e2e-run.bats                 #   Scenario runner scoping
+│   ├── eval.bats                    #   Eval harness: schema, oracle rule, triggers fixture
 │   ├── k8s-dashboard.bats           #   K8s dashboard, namespaces
 │   ├── prompt-hook.bats             #   Command routing
-│   └── setup.bats                   #   Setup integrity, JSON merge
+│   ├── safety-guard.bats            #   Inline git/rm guard: blocked + allowed pairs
+│   ├── scenario.bats                #   Scenario authoring skill
+│   └── setup.bats                   #   Setup integrity, JSON merge, dotnet rule wiring
 │
 └── copilot/                         # Copilot CLI specific
     ├── install-to-repo.sh           # Install instructions into a repo
