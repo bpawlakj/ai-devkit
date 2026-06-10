@@ -27,6 +27,7 @@ Before ANY commit, verify:
 - Authentication/authorization verified on all endpoints
 - Rate limiting on public endpoints
 - Error messages don't leak internals (stack traces, paths, SQL)
+- New personal-data fields have a lawful basis and a retention path (see Privacy / GDPR)
 
 ## Secret Management
 
@@ -66,6 +67,28 @@ if (!apiKey) throw new Error("API_KEY not configured");
 - Return generic messages to clients — never expose stack traces, internal paths, or SQL errors
 - Map exceptions to safe HTTP status codes at handler boundaries
 - **Never swallow exceptions:** a `catch` that logs and returns a 2xx hides failures from clients and monitoring alike (OWASP 2025 **A10: Mishandling of Exceptional Conditions**). Propagate the error or map it to a non-2xx status — see `node.md` § Error Handling.
+
+## Privacy / GDPR (Privacy by Design)
+
+Applies whenever code collects, stores, or processes personal data (anything identifying a person: name, email, IP, device id, location, behavioral traces).
+
+- **Data minimisation:** collect and persist only the fields the feature actually uses. A "might need it later" column is a liability, not an asset — add it when the need is real.
+- **Lawful basis:** every new collection of personal data names its basis (consent / contract / legitimate interest) in the spec or PR description. Consent-based data requires a working revocation path.
+- **Pseudonymisation:** logs, analytics events, and test fixtures reference opaque user IDs or hashes — never names, emails, or raw identifiers.
+
+```typescript
+// BAD — PII in logs
+logger.info(`Login failed for ${user.email} from ${req.ip}`);
+
+// GOOD — pseudonymous, still debuggable
+logger.info(`Login failed`, { userId: user.id, ipHash: hash(req.ip) });
+```
+
+- **Retention:** personal data gets a TTL or a documented deletion path. "Keep forever" is a decision that must be made explicitly — never the default of a forgotten table.
+- **Right to erasure:** account deletion deletes or irreversibly anonymizes the person's data, including in backups' restore procedures and downstream copies (analytics, search indexes).
+- **Data subject rights:** features storing personal data must not structurally block export (access/portability) or deletion — e.g. don't bake PII into immutable event payloads without a crypto-shredding or anonymization strategy.
+
+Org- or domain-specific compliance (e.g. minors / education regulations) lives in the project's `AGENTS.md` or foundation docs — this rule covers the generic GDPR baseline only.
 
 ## Dependency Security
 
