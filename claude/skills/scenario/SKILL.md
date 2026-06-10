@@ -265,7 +265,9 @@ runs `/e2e-run` first).
    source doesn't state, ask — don't fabricate behavior.
 3. **Assertion oracle = spec, never the implementation.** Generated assertions
    encode what *should* happen (acceptance criteria), not what the running app
-   currently returns. Asserting observed output cements bugs.
+   currently returns. Asserting observed output cements bugs. This is the
+   fresh-verification discipline applied to test oracles — the shared contract
+   lives at `../eval/references/fresh-verification.md`.
 4. **No hardcoded secrets or hosts.** Base URLs and tokens come from env / config.
    This mirrors `/implement`'s security-baseline SEC-01.
 5. **Never auto-heal, never run here.** This skill authors and grounds; it does

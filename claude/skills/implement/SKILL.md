@@ -206,7 +206,7 @@ Run code review before commit?
   - Just performance
 ```
 
-If yes / partial yes: delegate via the `Agent` tool to the relevant subagent(s). Print their findings. Loop: if the user wants to apply suggested fixes, jump back to Step 4 with the suggestions as the new scope addendum.
+If yes / partial yes: delegate via the `Agent` tool to the relevant subagent(s). The review brief follows fresh-model verification (`../eval/references/fresh-verification.md`): the subagent gets the task diff + `## Acceptance` — never the implementation reasoning — and reports correctness/requirement gaps only. Print their findings. Loop: if the user wants to apply suggested fixes, jump back to Step 4 with the suggestions as the new scope addendum.
 
 ### Step 6: Full suite + commit
 

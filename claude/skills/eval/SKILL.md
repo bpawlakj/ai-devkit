@@ -131,9 +131,10 @@ Grade each output **against `## Expected`, never against the target's own echo**
   structural) → fraction satisfied.
 - `grader: rubric` — delegate to a **fresh `Agent` as judge** with the `## Expected` checklist as
   the rubric; the judge returns a 0..1 score + a one-line justification per criterion. Use a
-  separate agent from any that produced the output (fresh-model verification — refute, don't
-  rubber-stamp). Model tier: the judge is judgment work — never run it on a weaker model than
-  the one that produced the output (ai-devkit `docs/model-per-skill.md`, rule 2).
+  separate agent from any that produced the output (fresh-model verification per the shared
+  contract `references/fresh-verification.md` — refute, don't rubber-stamp). Model tier: the
+  judge is judgment work — never run it on a weaker model than the one that produced the output
+  (ai-devkit `docs/model-per-skill.md`, rule 2).
 
 Record per-task score; aggregate per suite by `weight`.
 
