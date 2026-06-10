@@ -130,11 +130,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "input=$(cat); if echo \"$input\" | grep -q '\\-\\-no-verify'; then echo 'BLOCKED: --no-verify flag detected. Do not skip git hooks.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force' && ! echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force-with-lease(\\s|$)'; then echo 'BLOCKED: git push --force detected. Use --force-with-lease or ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+reset\\s+--hard'; then echo 'BLOCKED: git reset --hard detected. This discards uncommitted work. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'rm\\s+-rf\\s+/|rm\\s+-rf\\s+~|rm\\s+-rf\\s+\\.|rm\\s+-rf\\s+\\*'; then echo 'BLOCKED: dangerous rm -rf pattern detected. Ask user first.' >&2; exit 2; fi; exit 0",
+            "command": "input=$(cat); if echo \"$input\" | grep -q '\\-\\-no-verify'; then echo 'BLOCKED: --no-verify flag detected. Do not skip git hooks.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force' && ! echo \"$input\" | grep -qE 'git\\s+push\\s+.*--force-with-lease(\\s|$)'; then echo 'BLOCKED: git push --force detected. Use --force-with-lease or ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+reset\\s+--hard'; then echo 'BLOCKED: git reset --hard detected. This discards uncommitted work. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'rm\\s+-rf\\s+/|rm\\s+-rf\\s+~|rm\\s+-rf\\s+\\.|rm\\s+-rf\\s+\\*'; then echo 'BLOCKED: dangerous rm -rf pattern detected. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+clean\\s+-[a-zA-Z]*f'; then echo 'BLOCKED: git clean -f detected. This deletes untracked files. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+branch\\s+-D'; then echo 'BLOCKED: git branch -D detected. Force-deletes a possibly unmerged branch. Ask user first.' >&2; exit 2; fi; if echo \"$input\" | grep -qE 'git\\s+checkout\\s+(--\\s+)?\\.([^[:alnum:]/_.-]|$)'; then echo 'BLOCKED: git checkout . detected. This discards working-tree changes. Ask user first.' >&2; exit 2; fi; exit 0",
             "timeout": 5
           }
         ],
-        "description": "Block dangerous commands: --no-verify, push --force, reset --hard, rm -rf"
+        "description": "Block dangerous commands: --no-verify, push --force, reset --hard, rm -rf, clean -f, branch -D, checkout ."
       }
     ]
   }
