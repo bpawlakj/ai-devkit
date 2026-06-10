@@ -1,11 +1,11 @@
 ---
 id: T-001
 title: GDPR / privacy-by-design section in rules/security.md
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: bdb32ae
 depends_on: []
 blocks: []
 plan_anchor: P1-1
