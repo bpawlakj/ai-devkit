@@ -39,10 +39,20 @@ id: G-001                          # zero-padded 3-digit, unique within the suit
 suite: summarize                   # parent suite folder name
 target: skill:product-spec         # what is being evaluated: skill:<name> | prompt:<path> | agent:<name> | feature:<id>
 grader: rubric                     # rubric (LLM-as-judge against ## Expected) | assert (deterministic) | exact
+pattern: A                         # A artifact-correctness | B process-discipline | C config-compliance
 weight: 1                          # relative weight in the suite aggregate (default 1)
 tags: []                           # optional: for --grep scoping
 ---
 ```
+
+**`pattern:` taxonomy** (greppable dimension for filtering — `grep -r "pattern: B" evals/`):
+
+- **A — artifact-correctness**: grades the produced artifact itself (a spec, a summary, generated code).
+- **B — process-discipline**: grades side-artifacts the run should have produced or respected (a
+  decision-log entry written, frontmatter writeback, a gate honored) — the output may be fine while
+  the process was violated.
+- **C — config-compliance**: grades conformance to configuration (rules files honored, thresholds
+  applied, schema fields present).
 
 ### Body sections
 
@@ -54,9 +64,12 @@ re-running gets the same input.
 
 ## Expected
 
-The oracle. For grader=rubric: the criteria a correct output must satisfy (checklist the judge
-scores against). For grader=assert: the observable assertions (values, structure, must-contain /
-must-not-contain). For grader=exact: the exact expected string/JSON.
+The oracle. For grader=rubric: a numbered checklist of plain-English **expectations** — granular,
+independently checkable assertions, one per line. The judge scores each expectation met / not met
+and the task score is the fraction met. Prefer many small assertions over one holistic description:
+per-assertion grading is markedly more deterministic than a holistic 0..1 impression. For
+grader=assert: the observable assertions (values, structure, must-contain / must-not-contain). For
+grader=exact: the exact expected string/JSON.
 
 ## Notes
 
@@ -96,6 +109,33 @@ accepts a run (`/eval --accept`); never hand-edited.
 
 `model` + `harness` are stamped so a regression diff can attribute a drop to a model or harness
 upgrade — the EVAL-07 "regression check on every model/harness upgrade" requirement.
+
+## triggers.json (routing discrimination fixture — optional)
+
+Tests skill **routing/dispatch** separately from output quality: does each skill fire on the
+queries it should, and — the half that usually goes untested — stay silent on the queries it
+should NOT? Every covered skill carries at least one **adversarial negative**: a query that
+plausibly resembles the skill's trigger phrases but belongs to a sibling skill.
+
+```json
+{
+  "skills": {
+    "research": {
+      "cases": [
+        { "query": "should we adopt pgvector or Pinecone?", "should_trigger": true },
+        { "query": "I have an idea for an app, help me shape it",
+          "should_trigger": false, "note": "product-level discovery -> /discover" }
+      ]
+    }
+  }
+}
+```
+
+Run: for each case, a **fresh `Agent`** receives ONLY the query + the skill's frontmatter
+`description` (never the full SKILL.md body, never the other cases) and answers whether it would
+route the query to that skill. Compare to `should_trigger`. **Firing on a `should_trigger: false`
+case is a failure, not a warning** — over-triggering is the documented collision failure mode of
+overlapping workflow skills. Report alongside suite results.
 
 ## Run report (printed, not persisted unless `--out`)
 

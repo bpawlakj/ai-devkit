@@ -51,3 +51,42 @@ SKILL_DIR="$REPO_DIR/claude/skills/eval"
 @test "eval: copilot prompt mirror exists" {
     [ -f "$REPO_DIR/copilot/prompts/eval.md" ]
 }
+
+# ── P1-5 refinements: pattern taxonomy, expectations checklists, triggers fixture ──
+
+@test "eval: schema defines the pattern taxonomy (A/B/C)" {
+    run grep -qE "pattern:" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "process-discipline" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "config-compliance" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+}
+
+@test "eval: rubric grading is per-expectation (fraction met)" {
+    run grep -qiE "fraction met" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "each expectation independently" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+}
+
+@test "eval: triggers.json documented in schema and SKILL.md" {
+    run grep -qE "triggers.json" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qE "triggers.json" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "should_trigger.*false.*failure|failure, not a warning" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+}
+
+@test "eval: repo triggers fixture is valid JSON with adversarial negatives per skill" {
+    [ -f "$REPO_DIR/evals/triggers.json" ]
+    run jq empty "$REPO_DIR/evals/triggers.json"
+    [ "$status" -eq 0 ]
+    # every covered skill has at least one should_trigger:false case
+    run jq -e '.skills | to_entries | all(.value.cases | map(select(.should_trigger == false)) | length >= 1)' "$REPO_DIR/evals/triggers.json"
+    [ "$status" -eq 0 ]
+    # every case has query + should_trigger
+    run jq -e '[.skills[].cases[]] | all(has("query") and has("should_trigger"))' "$REPO_DIR/evals/triggers.json"
+    [ "$status" -eq 0 ]
+}

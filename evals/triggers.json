@@ -1,0 +1,70 @@
+{
+  "description": "Routing discrimination fixture for ai-devkit skills. Each covered skill has positive cases (should fire) and at least one adversarial negative (plausibly similar query that belongs to a sibling skill). Run by /eval Step 3.5; firing on should_trigger:false is a failure. Shape: claude/skills/eval/references/eval-schema.md § triggers.json.",
+  "skills": {
+    "research": {
+      "cases": [
+        { "query": "should we adopt pgvector or Pinecone for embeddings?", "should_trigger": true },
+        { "query": "evaluate Auth0 vs Supabase vs Clerk for our login", "should_trigger": true },
+        { "query": "I have an idea for a recipe app, help me shape it", "should_trigger": false, "note": "product-level discovery -> /discover" },
+        { "query": "what does the parseConfig function return?", "should_trigger": false, "note": "single fact lookup, no research artifact needed" }
+      ]
+    },
+    "discover": {
+      "cases": [
+        { "query": "I'm starting a new project from scratch, let's brainstorm what to build", "should_trigger": true },
+        { "query": "we want to add a major reporting module to the existing system", "should_trigger": true },
+        { "query": "should we use Postgres or DynamoDB for this?", "should_trigger": false, "note": "per-decision technical research -> /research" }
+      ]
+    },
+    "save-plan": {
+      "cases": [
+        { "query": "save the plan I just approved", "should_trigger": true },
+        { "query": "break the plan down into atomic tasks", "should_trigger": false, "note": "decomposition -> /atomize" }
+      ]
+    },
+    "atomize": {
+      "cases": [
+        { "query": "decompose the plan into tasks", "should_trigger": true },
+        { "query": "the plan changed, what tasks need updating?", "should_trigger": true },
+        { "query": "execute the plan", "should_trigger": false, "note": "execution -> /implement" }
+      ]
+    },
+    "implement": {
+      "cases": [
+        { "query": "implement T-003", "should_trigger": true },
+        { "query": "resume the initiative in docs/work/002", "should_trigger": true },
+        { "query": "reconcile the tasks against the new plan", "should_trigger": false, "note": "reconciliation -> /atomize" }
+      ]
+    },
+    "scenario": {
+      "cases": [
+        { "query": "write e2e scenarios for the checkout flow", "should_trigger": true },
+        { "query": "run the e2e tests for T-005", "should_trigger": false, "note": "execution -> /e2e-run" }
+      ]
+    },
+    "e2e-run": {
+      "cases": [
+        { "query": "run the pessimistic paths for the login scenarios", "should_trigger": true },
+        { "query": "author test scenarios for the signup edge cases", "should_trigger": false, "note": "authoring -> /scenario" }
+      ]
+    },
+    "repo-map": {
+      "cases": [
+        { "query": "onboard me to this legacy codebase before I change it", "should_trigger": true },
+        { "query": "scaffold the docs directory structure", "should_trigger": false, "note": "scaffolding -> /setup" }
+      ]
+    },
+    "eval": {
+      "cases": [
+        { "query": "did the model upgrade regress our summarizer output?", "should_trigger": true },
+        { "query": "review this pull request for bugs", "should_trigger": false, "note": "code review -> /code-review or /bitbucket-review" }
+      ]
+    },
+    "setup": {
+      "cases": [
+        { "query": "initialize the docs structure in this project", "should_trigger": true },
+        { "query": "map this repo so I understand the architecture", "should_trigger": false, "note": "evidence-based mapping -> /repo-map" }
+      ]
+    }
+  }
+}

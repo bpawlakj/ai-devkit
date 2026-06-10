@@ -104,9 +104,13 @@ golden tasks before the first run. Do not invent domain golden tasks the user di
 ### Step 1: Discover golden tasks
 
 Glob the resolved scope for `G-*.md`. For each, read frontmatter (`id`, `suite`, `target`,
-`grader`, `weight`) and the `## Input` / `## Expected` body. Skip and warn on any task missing
-`## Expected` (no oracle = not runnable). Print the run plan: N tasks across M suites, grouped by
-`target`.
+`grader`, `pattern`, `weight`) and the `## Input` / `## Expected` body. Skip and warn on any task
+missing `## Expected` (no oracle = not runnable). `pattern:` (A artifact-correctness | B
+process-discipline | C config-compliance, per `references/eval-schema.md`) is a scoping dimension —
+`--grep pattern:B` runs only process-discipline tasks. Print the run plan: N tasks across M suites,
+grouped by `target`.
+
+If `evals/triggers.json` exists, also load the trigger-discrimination fixture (see Step 3.5).
 
 ### Step 2: Run each golden task against its target
 
@@ -129,14 +133,25 @@ Grade each output **against `## Expected`, never against the target's own echo**
 - `grader: exact` — string/JSON equality → score 1.0 or 0.0.
 - `grader: assert` — evaluate the declared observable assertions (must-contain / must-not-contain /
   structural) → fraction satisfied.
-- `grader: rubric` — delegate to a **fresh `Agent` as judge** with the `## Expected` checklist as
-  the rubric; the judge returns a 0..1 score + a one-line justification per criterion. Use a
-  separate agent from any that produced the output (fresh-model verification per the shared
-  contract `references/fresh-verification.md` — refute, don't rubber-stamp). Model tier: the
-  judge is judgment work — never run it on a weaker model than the one that produced the output
-  (ai-devkit `docs/model-per-skill.md`, rule 2).
+- `grader: rubric` — delegate to a **fresh `Agent` as judge** with the `## Expected` expectations
+  checklist as the rubric; the judge scores **each expectation independently (met / not met) with a
+  one-line justification**, and the task score is the fraction met — per-assertion grading is
+  markedly more deterministic than one holistic 0..1 impression. Use a separate agent from any that
+  produced the output (fresh-model verification per the shared contract
+  `references/fresh-verification.md` — refute, don't rubber-stamp). Model tier: the judge is
+  judgment work — never run it on a weaker model than the one that produced the output (ai-devkit
+  `docs/model-per-skill.md`, rule 2).
 
 Record per-task score; aggregate per suite by `weight`.
+
+### Step 3.5: Trigger discrimination (only when `evals/triggers.json` exists)
+
+Routing is tested separately from output quality. For each case in the fixture, a **fresh `Agent`**
+receives ONLY the query + the covered skill's frontmatter `description` (never the SKILL.md body,
+never the other cases) and answers: would you route this query to this skill? Compare to
+`should_trigger`. **Any `should_trigger: false` case that fires is a failure, not a warning** —
+over-triggering is the collision failure mode of overlapping workflow skills. Shape and rationale:
+`references/eval-schema.md` § triggers.json. Report pass/fail per skill alongside suite results.
 
 ### Step 4: Compare to baseline + apply thresholds
 
