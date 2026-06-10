@@ -166,14 +166,21 @@ Read `evals/baseline.json` if present.
 
 Print the run report from the schema: per-task score, pass/FAIL, baseline value, and the regression
 delta; then the aggregate verdict with the reason (which tasks regressed / fell below `task_pass`).
-Stamp `model` + `harness`. With `--out <file>`, also write the report there.
+When usage is known, append per-task token counts + `cost_usd` and the cost delta vs baseline —
+**informational only**, never part of the pass/fail verdict (a model upgrade that doubles cost at
+equal quality is a finding for a human, not a failed run). Stamp `model` + `harness`. With
+`--out <file>`, also write the report there.
 
 ### Step 6: Accept (only with `--accept`)
 
 If and only if the user passed `--accept` AND the run is acceptable, regenerate
 `evals/baseline.json` from this run (stamping `accepted` date, `model`, `harness`, per-suite +
-per-task scores). Show the `baseline.json` diff and confirm before writing — its diff is the
-regression signal future runs and PR reviewers rely on. Never auto-accept a run that failed.
+per-task scores, and — when the harness reports it — per-task `usage` with
+`gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` / `cost_usd`, per
+`references/eval-schema.md`; numbers only, **never prompt or completion text** — omit a task's
+usage entry rather than estimate or embed content). Show the `baseline.json` diff and confirm
+before writing — its diff is the regression signal future runs and PR reviewers rely on. Never
+auto-accept a run that failed.
 
 ## CI hook (documented; recipe is a follow-up)
 
@@ -195,6 +202,8 @@ CI is a separate, opt-in task.
    the output — refute, don't rubber-stamp (fresh-model verification).
 6. **Don't invent golden tasks.** Scaffolding writes ONE example task to show the shape; real domain
    golden tasks come from the user, not the skill's guesses.
+7. **Telemetry is numbers only.** `usage` in `baseline.json` carries token counts + `cost_usd` —
+   never prompt/completion text or artifact content. Cost deltas inform; quality thresholds decide.
 
 ## Notes
 

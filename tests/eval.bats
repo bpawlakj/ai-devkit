@@ -79,6 +79,26 @@ SKILL_DIR="$REPO_DIR/claude/skills/eval"
     [ "$status" -eq 0 ]
 }
 
+@test "eval: baseline carries gen_ai usage keys with the no-content privacy rule" {
+    run grep -qE "gen_ai\.usage\.input_tokens" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qE "gen_ai\.usage\.output_tokens" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qE "cost_usd" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "never prompt.*text|never.*completion text" "$SKILL_DIR/references/eval-schema.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "never prompt or completion text" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+}
+
+@test "eval: cost deltas are informational, not pass/fail" {
+    run grep -qiE "informational" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+    run grep -qiE "quality thresholds decide|never part of the pass/fail" "$SKILL_DIR/SKILL.md"
+    [ "$status" -eq 0 ]
+}
+
 @test "eval: repo triggers fixture is valid JSON with adversarial negatives per skill" {
     [ -f "$REPO_DIR/evals/triggers.json" ]
     run jq empty "$REPO_DIR/evals/triggers.json"

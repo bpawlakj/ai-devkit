@@ -101,7 +101,11 @@ accepts a run (`/eval --accept`); never hand-edited.
   "suites": {
     "summarize": {
       "pass_rate": 0.86,
-      "tasks": { "G-001": 0.9, "G-002": 0.8 }
+      "tasks": { "G-001": 0.9, "G-002": 0.8 },
+      "usage": {
+        "G-001": { "gen_ai.usage.input_tokens": 1240, "gen_ai.usage.output_tokens": 890, "cost_usd": 0.0121 },
+        "G-002": { "gen_ai.usage.input_tokens": 980, "gen_ai.usage.output_tokens": 1410, "cost_usd": 0.0158 }
+      }
     }
   }
 }
@@ -109,6 +113,14 @@ accepts a run (`/eval --accept`); never hand-edited.
 
 `model` + `harness` are stamped so a regression diff can attribute a drop to a model or harness
 upgrade — the EVAL-07 "regression check on every model/harness upgrade" requirement.
+
+**`usage` (per-task cost/token telemetry, EVAL-02):** keys follow the OTel GenAI semantic
+conventions (`gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`) plus `cost_usd`, keyed per
+task; the suite's `target:` (e.g. `skill:product-spec`) is the `skill.name` attribution. Best-effort
+— when the harness can't report usage for a run, omit the task's entry rather than estimating.
+Cost deltas in the regression diff are **informational**: pass/fail stays driven by the quality
+thresholds. **Privacy rule (hard):** `usage` entries carry numbers only — never prompt text,
+completion text, or any artifact content (open-gitagent's no-prompt-text rule, reused verbatim).
 
 ## triggers.json (routing discrimination fixture — optional)
 
@@ -158,3 +170,6 @@ EVAL — suite: summarize · target: skill:product-spec · model: claude-opus-4-
 4. **Golden tasks are append-only in spirit.** Changing a task's `## Expected` changes the oracle —
    prefer adding `G-NNN` over silently editing an accepted task's expectation.
 5. **Model + harness are stamped** on every baseline so a drop is attributable to an upgrade.
+6. **Telemetry never contains prompt or completion text.** `usage` is numbers only
+   (`gen_ai.usage.*` token counts + `cost_usd`); a baseline entry that would embed content is
+   refused. Cost deltas inform — quality thresholds decide.
