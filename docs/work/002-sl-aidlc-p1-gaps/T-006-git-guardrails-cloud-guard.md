@@ -1,11 +1,11 @@
 ---
 id: T-006
 title: Git guardrails folded into cloud-guard.sh
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: 0261b08
 depends_on: []
 blocks: []
 plan_anchor: P1-6
@@ -35,3 +35,15 @@ destructive/history-rewriting forms.
 - Existing cloud-guard behavior (AWS/kubectl/helm patterns) unchanged.
 - Bats tests cover at least one blocked and one allowed example per new pattern
   group and pass.
+
+## Notes
+
+### Implementation note
+
+2026-06-10 — Scope deviation: the destructive-git patterns live in the inline
+PreToolUse guard in `claude/settings.template.json` (not `cloud-guard.sh`, which
+covers cloud CLIs only); the missing patterns were folded there. Known
+trade-off, observed live during this task's own commit: the guard greps the
+full tool input, so a commit message *mentioning* a blocked literal (e.g. the
+no-verify flag) false-positives. Acceptable for a block-list; reword the
+message when it happens.
