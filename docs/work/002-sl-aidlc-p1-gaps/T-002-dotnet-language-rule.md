@@ -1,11 +1,11 @@
 ---
 id: T-002
 title: .NET / C# language rule (dotnet.md + mirror + formatter hook)
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: f902263
 depends_on: []
 blocks: []
 plan_anchor: P1-2
