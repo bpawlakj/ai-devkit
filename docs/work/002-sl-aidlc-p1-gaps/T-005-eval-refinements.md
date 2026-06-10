@@ -1,11 +1,11 @@
 ---
 id: T-005
 title: /eval refinements — pattern taxonomy, assertion checklists, triggers fixture
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: 207cd83
 depends_on: []
 blocks: [T-007]
 plan_anchor: P1-5
