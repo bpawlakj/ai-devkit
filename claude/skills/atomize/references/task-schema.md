@@ -46,6 +46,7 @@ How to implement. References to relevant existing patterns in the codebase. May 
 ## Acceptance
 
 What "done" looks like. Observable behavior, test cases, manual verification steps.
+For failure/edge cases, "If <trigger>, then <expected response>" phrasing keeps the criterion testable.
 
 ## Notes
 
