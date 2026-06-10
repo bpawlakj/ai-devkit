@@ -78,14 +78,14 @@ ai-devkit splits language-specific knowledge from workflow tooling on purpose:
 | Layer | Per-language? | Why |
 |---|---|---|
 | **Rules** (`~/.claude/rules/*.md`) | **Yes** — `go.md`, `java.md`, `python.md`, `typescript.md`, … | Idioms differ per language (Go error wrapping, Python type hints, TS `unknown` over `any`). Auto-active when matching files are edited. |
-| **Hooks** (formatters) | **Yes** — `gofmt`/`goimports`, `ruff`, `prettier`, `php-cs-fixer`, `swiftformat`, `google-java-format` | Formatters are language-specific by definition. |
+| **Hooks** (formatters) | **Yes** — `gofmt`/`goimports`, `ruff`, `prettier`, `php-cs-fixer`, `swiftformat`, `google-java-format`, `dotnet format` | Formatters are language-specific by definition. |
 | **Commands / Agents / Skills** | **No** — `build-resolver`, `security-reviewer`, `/implement`, `/atomize`, … | Workflow shape is the same across languages. Runner / build tool / test command auto-detected from `package.json` / `pyproject.toml` / `go.mod` / `pom.xml` / `Cargo.toml` / `composer.json` / `Package.swift` / etc. |
 
 Practical consequence: there is no `/go-build` or `/python-test` slash command. To get the same outcome, edit a `.go` file (Rules auto-activate Go idioms), invoke `/implement` (auto-detects `go test` via `go.mod`), or invoke `build-resolver` agent (has a Go section in its multi-language body). Same for any other language with a Rule and a lockfile.
 
 ---
 
-### Rules — Coding Standards (13 files)
+### Rules — Coding Standards (14 files)
 
 Auto-activate based on file type. Enforce language/framework best practices without manual setup.
 
@@ -102,6 +102,7 @@ Auto-activate based on file type. Enforce language/framework best practices with
 | **go** | `*.go`, `go.mod`, `go.sum` | gofmt/goimports, error wrapping (`%w`), functional options, table-driven tests, race detection, `context.Context`, goroutine safety, gosec |
 | **php** | `*.php`, `composer.json` | PSR-12, `strict_types`, typed properties, immutable DTOs, PHPUnit/Pest, PHP-CS-Fixer/Pint, PHPStan/Psalm, prepared statements, CSRF |
 | **swift-ios** | `*.swift`, `Package.swift` | Swift 6 concurrency (`Sendable`, actors), protocol-oriented design, typed throws, Keychain, SwiftFormat, Swift Testing |
+| **dotnet** | `*.cs`, `*.csproj` | Nullable reference types, records + modern C# 12+, async all the way (`CancellationToken`, no `.Result`), constructor DI, xUnit + FluentAssertions + Testcontainers, NetAnalyzers, 80% coverage |
 | **e2e-testing** | `*.e2e.ts`, `e2e/**`, `playwright.config.*` | When E2E vs unit, role-based selectors, test independence, wait-for-state, `storageState` reuse, the five anti-patterns, deliberate-breakage verify |
 | **accessibility** | `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`, `*.component.ts/html` | WCAG 2.2 AA: native semantics over ARIA, landmarks + heading order, programmatic labels, keyboard operability + visible focus, contrast, no meaning-by-color-alone, `aria-live` for async, a11y in the definition of done |
 
@@ -480,6 +481,7 @@ Run automatically on specific events. Claude Code only.
 | **prettier** | `PostToolUse` (Edit `*.ts`/`*.tsx`/`*.js`/`*.jsx`) | Auto-format |
 | **goimports/gofmt** | `PostToolUse` (Edit `*.go`) | Auto-format with goimports (fallback to gofmt) |
 | **php-cs-fixer/pint** | `PostToolUse` (Edit `*.php`) | Auto-format with Pint (fallback to PHP-CS-Fixer) |
+| **dotnet format** | `PostToolUse` (Edit `*.cs`) | Auto-format C# files |
 | **safety guard** | `PreToolUse` (Bash) | Blocks `--no-verify`, `push --force` (allows `--force-with-lease`), `reset --hard`, dangerous `rm -rf` |
 
 The cloud dashboard hook is the key mechanism that makes `/aws` and `/k8s` deterministic — `prompt-hook.sh` detects the slash command and runs the corresponding dashboard script, injecting its output as context before Claude processes the prompt.

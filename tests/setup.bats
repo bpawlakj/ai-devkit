@@ -97,3 +97,15 @@ teardown() {
     [ "$status" -eq 0 ]
     [ "$output" -ge 1 ]
 }
+
+@test "setup: dotnet rule exists with copilot mirror and formatter hook" {
+    [ -f "$REPO_DIR/claude/rules/dotnet.md" ]
+    grep -q '\*\*/\*.cs' "$REPO_DIR/claude/rules/dotnet.md"
+    [ -f "$REPO_DIR/copilot/instructions/dotnet.instructions.md" ]
+    grep -q 'dotnet format' "$REPO_DIR/claude/settings.template.json"
+    grep -qw 'dotnet' "$REPO_DIR/copilot/install-to-repo.sh"
+    # settings template stays valid JSON after the hook addition
+    run jq -e '.hooks.PostToolUse | map(select(.description | test("C#"))) | length' "$REPO_DIR/claude/settings.template.json"
+    [ "$status" -eq 0 ]
+    [ "$output" -eq 1 ]
+}

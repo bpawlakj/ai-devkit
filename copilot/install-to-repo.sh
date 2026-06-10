@@ -18,7 +18,7 @@ ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <project-path> [--languages java,python,typescript,react,angular,node,swift,go,php]"
+    echo "Usage: $0 <project-path> [--languages java,python,typescript,react,angular,node,swift,go,php,dotnet]"
     echo ""
     echo "Examples:"
     echo "  $0 /path/to/project                          # Install all"
@@ -93,7 +93,7 @@ if [ -z "$LANGUAGES" ]; then
 else
     # Install selected
     IFS=',' read -ra LANGS <<< "$LANGUAGES"
-    VALID_LANGS="java spring spring-boot python typescript react angular node swift-ios go php security"
+    VALID_LANGS="java spring spring-boot python typescript react angular node swift-ios go php dotnet security"
     for lang in "${LANGS[@]}"; do
         lang=$(echo "$lang" | tr -d ' ')
         # Validate against allowlist to prevent path traversal

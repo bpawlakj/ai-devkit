@@ -88,6 +88,17 @@
           }
         ],
         "description": "Auto-format PHP files with Pint/PHP-CS-Fixer after edits"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -o '\"file_path\":\"[^\"]*\"' | head -1 | sed 's/\"file_path\":\"//;s/\"//'); [ -n \"$file\" ] && [[ \"$file\" == \"$PWD\"/* ]] && [[ \"$file\" == *.cs ]] && command -v dotnet >/dev/null 2>&1 && dotnet format --include \"$file\" --no-restore --verbosity quiet 2>/dev/null; exit 0",
+            "timeout": 30
+          }
+        ],
+        "description": "Auto-format C# files with dotnet format after edits"
       }
     ],
     "UserPromptSubmit": [
