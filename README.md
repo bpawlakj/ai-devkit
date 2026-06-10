@@ -360,6 +360,75 @@ Static code analysis for performance bottlenecks:
 
 Five complementary workflows: (1) idea → product spec, (2) per-decision research, (3) plan → atomic tasks, (4) execute tasks → audit rules, (5) author E2E scenarios → run them. Plus two integration skills — `/open-web` (browser bridge for content `WebFetch` can't read) and `/bitbucket-review` (Claude code review for Bitbucket PRs over the REST API) — an eval harness (`/eval`) that scores AI output against golden tasks to catch regressions when the model or harness changes, and two engineering-infra skills: `/repo-map` (evidence-based map of an unfamiliar repo before you change it) and `/ci-setup` (CI pipeline with coverage gate + optional AI review). Skills live in `~/.claude/skills/` as subfolders with their own `references/` for locked schemas. Model tiers per skill archetype (token economy — when to run a subagent on a cheap vs capable model, and why a judge is never weaker than the producer) are documented in [`docs/model-per-skill.md`](docs/model-per-skill.md).
 
+How the phases and artifacts fit together:
+
+```
+                       ┌────────────────────────────────────────────────┐
+                       │  /setup — scaffold docs/ + tests/e2e/          │
+                       │  + docs/architecture/decisions/ (D-NNN log)    │
+                       └─────────────────────┬──────────────────────────┘
+                                             ▼
+┌────────────────────────────── DISCOVERY ──────────────────────────────┐
+│                                                                       │
+│  brownfield?  /repo-map ──► docs/architecture/repo-map.md             │
+│               (evidence map: territory, cycles, blast radius)         │
+│                                                                       │
+│  /discover ──► discover-notes.md ──► /product-spec ──► product-spec   │
+│                                                                       │
+│  technical decision?  /research ──► docs/analyzes/<slug>.md           │
+│                           │                                           │
+│                           └──► D-NNN record (living decision log)     │
+└─────────────────────────────────┬─────────────────────────────────────┘
+                                  ▼
+┌────────────────────────────────  PLAN  ───────────────────────────────┐
+│                                                                       │
+│  plan mode ──► /save-plan ──► docs/work/NNN-slug/plan.md              │
+│                (roadmap-shape plans ► docs/roadmap.md)                │
+│                                                                       │
+│  /atomize ──► T-001…T-NNN (depends_on, ## Acceptance with             │
+│               "If <trigger>, then <expected>" failure-path criteria)  │
+│               + derived index.md                                      │
+└─────────────────────────────────┬─────────────────────────────────────┘
+                                  ▼
+┌──────────────────────────────  EXECUTE  ──────────────────────────────┐
+│                                                                       │
+│  /implement (loop per task):                                          │
+│    pre gates  ─ clean tree, branch, deps, runner, green baseline      │
+│    execute    ─ red→green→refactor, oracle = ## Acceptance            │
+│    review     ─ fresh-model verification (reviewer sees ONLY the      │
+│                 diff + acceptance criteria, never the reasoning)      │
+│    post gates ─ opt-in security-baseline on the diff, full suite,     │
+│                 commit "T-NNN … Refs: D-NNN"                          │
+│    writeback  ─ status/commit/completed → frontmatter → STATUS.md     │
+└─────────────────────────────────┬─────────────────────────────────────┘
+                                  ▼
+┌────────────────────────────────  TEST  ───────────────────────────────┐
+│                                                                       │
+│  /scenario ──► scenario plan (human gate) ──► committed .spec.ts      │
+│                @optimistic/@pessimistic ──► /e2e-run (report-only)    │
+└─────────────────────────────────┬─────────────────────────────────────┘
+                                  ▼
+┌────────────────────────────────  AUDIT  ──────────────────────────────┐
+│                                                                       │
+│  /eval ── golden tasks ► baseline.json (model+harness stamp +         │
+│           gen_ai.* cost/token telemetry) ► fail on any regression     │
+│           pattern: A/B/C taxonomy · triggers.json routing check       │
+│                                                                       │
+│  /code-review · /bitbucket-review · /rule-review · /agents-md         │
+│  /ci-setup ──► GitHub Actions (lint + test + coverage gate + AI       │
+│                review)                                                │
+└────────────────────────────────────────────────────────────────────────┘
+
+═══════════════ RUNTIME LAYER (always active, underneath) ═══════════════
+  14 auto-active language rules (security+GDPR, accessibility, dotnet…)
+  9 hooks: formatters · safety guard (force-push, hard-reset, force-
+  clean, branch -D, checkout .) · cloud-guard (AWS/kubectl/helm) ·
+  M1L3 permission policy
+═════════════════════════════════════════════════════════════════════════
+```
+
+Two feedback loops the vertical arrows don't show: **plan changed → `/atomize` reconciliation** revises tasks without touching `done` ones, and **`/research` → D-NNN → `/implement` `Refs:`** ties every decision from its reasoning snapshot through the durable verdict to the commit that implements it. Cross-run memory lives in `docs/work/STATUS.md` (where we are) and `docs/roadmap.md` (where we're going).
+
 | Skill | Purpose | Output |
 |---|---|---|
 | `/setup` | Scaffold the `/docs` directory (`architecture/` incl. a numbered `decisions/` log, `analyzes/`, `reference/`, `work/`) with canonical READMEs. Idempotent — never overwrites. For brownfield projects (git history + lockfile detected), additionally offers to run Claude Code's built-in `/init` to generate `CLAUDE.md` from codebase analysis. | docs dirs + READMEs + `architecture/decisions/` log (+ optional `CLAUDE.md`) |
