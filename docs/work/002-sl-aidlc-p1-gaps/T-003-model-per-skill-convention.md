@@ -1,11 +1,11 @@
 ---
 id: T-003
 title: Model-per-skill convention + reference table
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: ba329bc
 depends_on: []
 blocks: []
 plan_anchor: P1-3
