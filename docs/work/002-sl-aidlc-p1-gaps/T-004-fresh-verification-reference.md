@@ -1,11 +1,11 @@
 ---
 id: T-004
 title: Shared fresh-verification reference cited from /implement + /scenario
-status: pending
+status: done
 plan: ../plan.md
 created: 2026-06-10
-completed: null
-commit: null
+completed: 2026-06-10
+commit: 44fc570
 depends_on: []
 blocks: []
 plan_anchor: P1-4

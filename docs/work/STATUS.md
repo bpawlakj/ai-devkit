@@ -8,7 +8,7 @@
 
 | ID | Initiative | Tasks (done/total) | Updated |
 |----|------------|---------------------|---------|
-| 002 | [sl-aidlc-p1-gaps](002-sl-aidlc-p1-gaps/) | 3/7 | 2026-06-10 |
+| 002 | [sl-aidlc-p1-gaps](002-sl-aidlc-p1-gaps/) | 4/7 | 2026-06-10 |
 
 ## Backlog
 
